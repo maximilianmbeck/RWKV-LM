@@ -33,7 +33,7 @@ EXPRESS_PILE_MODEL_TYPE = 'RWKV-4-Pile-169M'
 
 ########################################################################################################
 
-datafile = "../data/enwik8" # your data
+datafile = '/system/user/beck/pwbeck/projects/rwkv/RWKV-LM/data/enwik8' #"../data/enwik8" # your data
 datafile_encoding = 'utf-8' # 'utf-8' / 'utf-16le' / 'numpy' (for fine-tuning pile models) / 'binidx' (the Megatron-LM 'binidx' format)
 
 # datafile = 'my-gpt_seq_document'
@@ -65,7 +65,7 @@ os.environ['RWKV_NUM_GPUS'] = '1' # num of GPUs to use
 # 'fp16' (fast & will overflow after training a large model for very long. can be solved in the future)
 # 'tf32' (decent speed & stable)
 # 'fp32' (!!!very slow!!! only for verification)
-os.environ['RWKV_FLOAT_MODE'] = 'bf16'
+os.environ['RWKV_FLOAT_MODE'] = 'fp16' #'bf16'
 
 os.environ['RWKV_DEEPSPEED'] = '1' # Use DeepSpeed? 0 = False, 1 = True
 
@@ -145,6 +145,7 @@ if EXPRESS_PILE_MODE:
 
 ### misc stuffs ########################################################################################
 
+NUM_GPUS = int(os.environ['RWKV_NUM_GPUS'])
 if LOAD_MODEL and EPOCH_BEGIN > 0: # we are not saving gradients, so let's have some warmup if we load a model
     warmup_tokens = 50 * ctx_len * batch_size // NUM_GPUS
 else:
@@ -155,7 +156,6 @@ eps = 1e-8
 
 num_workers = 1 # DataLoader worker. I only tested num_workers = 1
 
-NUM_GPUS = int(os.environ['RWKV_NUM_GPUS'])
 os.environ['RWKV_LOAD_MODEL'] = str(LOAD_MODEL)
 MODEL_NAME = epoch_save_path + str(EPOCH_BEGIN)
 

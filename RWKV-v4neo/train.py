@@ -106,6 +106,8 @@ if __name__ == "__main__":
     parser.add_argument("--magic_prime", default=0, type=int)
     parser.add_argument("--my_qa_mask", default=0, type=int)
     parser.add_argument("--my_testing", default='', type=str)
+    # mbeck
+    parser.add_argument("--use_jit", default=1, type=int)
 
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
@@ -116,10 +118,14 @@ if __name__ == "__main__":
     import numpy as np
     import torch
     from torch.utils.data import DataLoader
-    if "deepspeed" in args.strategy:
-        import deepspeed
+    # if "deepspeed" in args.strategy:
+    #     import deepspeed
+    import deepspeed
     import pytorch_lightning as pl
     from pytorch_lightning import seed_everything
+    
+    import wandb
+    wandb.login(host="https://wandb.ml.jku.at")
 
     if args.random_seed >= 0:
         print(f"########## WARNING: GLOBAL SEED {args.random_seed} THIS WILL AFFECT MULTIGPU SAMPLING ##########\n" * 3)
@@ -263,7 +269,7 @@ if __name__ == "__main__":
     if args.precision == "fp16":
         rank_zero_info("\n\nNote: you are using fp16 (might overflow). Try bf16 / tf32 for stable training.\n\n")
 
-    os.environ["RWKV_JIT_ON"] = "1"
+    os.environ["RWKV_JIT_ON"] = str(args.use_jit) #"1"
     if "deepspeed_stage_3" in args.strategy:
         os.environ["RWKV_JIT_ON"] = "0"
 
