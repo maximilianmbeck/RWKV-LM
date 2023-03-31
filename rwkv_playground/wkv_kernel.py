@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Union
 
 import torch
 from torch import nn
@@ -19,7 +19,7 @@ class WKVConfig:
         '-res-usage', '--maxrregcount 60', '--use_fast_math', '-O3',
         '-Xptxas -O3'
     ])
-    device: str = "cuda"
+    device: Union[str, torch.device] = "cuda"
     float_mode: str = "fp32"  # options: fp32, fp16, bfloat16
 
     def __post_init__(self):
@@ -38,25 +38,110 @@ class WKVConfig:
 
 
 class WKV(nn.Module):
-    _instance = None # for singleton
+    _instance = None  # for singleton
 
     class _WKV(torch.autograd.Function):
 
         @staticmethod
-        def forward(ctx, B, T, C, w, u, k, v, wkv_cuda):
-            # TODO add wkv_cuda to context
-            pass
+        def forward(ctx, batch_size, seq_len, embedding_dim, time_decay,
+                    time_first, k, v, wkv_cuda, wkv_config: WKVConfig):
+            # setup context # TODO for PyTorch 2.0 use extra setup_context() function
+            ctx.batch_size = batch_size
+            ctx.seq_len = seq_len
+            ctx.embedding_dim = embedding_dim
+            ctx.wkv_cuda = wkv_cuda
+            ctx.wkv_config = wkv_config
+            assert seq_len <= wkv_config.T_max, f"Sequence length {seq_len} exceeds the maximum allowed T_max={wkv_config.T_max}"
+            # TODO what does this assert do? Why necessary?
+            assert batch_size * embedding_dim % min(
+                embedding_dim, wkv_config.T_max
+            ) == 0, "batch_size * embedding_dim must be divisible by min(embedding_dim, T_max)"
+            #
+            dtype = torch.float32  # convert all tensors to float32 (for cuda kernel)
+            device = wkv_config.device
+            # convert input tensors
+            time_decay = time_decay.to(dtype=dtype,
+                                       device=device,
+                                       memory_format=torch.contiguous_format)
+            time_first = time_first.to(dtype=dtype,
+                                       device=device,
+                                       memory_format=torch.contiguous_format)
+            k = k.to(dtype=dtype,
+                     device=device,
+                     memory_format=torch.contiguous_format)
+            v = v.to(dtype=dtype,
+                     device=device,
+                     memory_format=torch.contiguous_format)
+
+            # allocate output tensor
+            y = torch.empty(batch_size,
+                            seq_len,
+                            embedding_dim,
+                            dtype=dtype,
+                            device=device,
+                            memory_format=torch.contiguous_format)
+
+            # call cuda kernel
+            time_decay = -torch.exp(time_decay)
+            ctx.save_for_backward(time_decay, time_first, k, v)
+            wkv_cuda.forward(batch_size, seq_len, embedding_dim,
+                                 time_decay, time_first, k, v, y)
+
+            # convert output tensor to correct dtype
+            y = y.to(dtype=wkv_config.float_mode_to_dtype())
+            return y
 
         @staticmethod
         def backward(ctx, gy):
-            pass
+            batch_size = ctx.batch_size
+            seq_len = ctx.seq_len
+            embedding_dim = ctx.embedding_dim
+            assert seq_len <= ctx.wkv_config.T_max, f"Sequence length {seq_len} exceeds the maximum allowed T_max={ctx.wkv_config.T_max}"
+            assert batch_size * embedding_dim % min(
+                embedding_dim, ctx.wkv_config.T_max
+            ) == 0, "batch_size * embedding_dim must be divisible by min(embedding_dim, T_max)"
+
+            time_decay, time_first, k, v = ctx.saved_tensors
+
+            device = ctx.wkv_config.device
+            # allocate gradient tensors
+            gtime_decay = torch.zeros((batch_size, seq_len),
+                                      device=device,
+                                      dtype=torch.float32,
+                                      memory_format=torch.contiguous_format)
+            gtime_first = torch.zeros((batch_size, embedding_dim),
+                                      device=device,
+                                      dtype=torch.float32,
+                                      memory_format=torch.contiguous_format)
+            gk = torch.zeros((batch_size, seq_len, embedding_dim),
+                             device=device,
+                             dtype=torch.float32,
+                             memory_format=torch.contiguous_format)
+            gv = torch.zeros((batch_size, seq_len, embedding_dim),
+                             device=device,
+                             dtype=torch.float32,
+                             memory_format=torch.contiguous_format)
+
+            # call cuda kernel
+            gy = gy.to(dtype=torch.float32,
+                       memory_format=torch.contiguous_format)
+            ctx.wkv_cuda.backward(batch_size, seq_len, embedding_dim,
+                                      time_decay, time_first, k, v, gy,
+                                      gtime_decay, gtime_first, gk, gv)
+
+            # convert gradient tensors to correct dtype
+            out_dtype = ctx.wkv_config.float_mode_to_dtype()
+
+            return (None, None, None, time_decay.to(dtype=out_dtype),
+                    time_first.to(dtype=out_dtype), k.to(dtype=out_dtype),
+                    v.to(dtype=out_dtype))
 
     def __new__(cls, config: WKVConfig = WKVConfig()):
         if cls._instance is None:
             cls._instance = super(WKV, cls).__new__(cls)
             cls._instance._setup(config)
         return cls._instance
-    
+
     def __init__(self, *args, **kwargs):
         # Dummy to avoid multiple calls to self._load_cuda()
         pass
@@ -67,7 +152,7 @@ class WKV(nn.Module):
         self.cfg = config
         self.wkv_cuda = self._load_cuda()
         self.device = self.cfg.device
-    
+
     def _load_cuda(self):
         cfg = self.cfg
         cuda_module = load(name=cfg.cpp_ext_name,
@@ -79,10 +164,12 @@ class WKV(nn.Module):
     def to(self, **kwargs):
         device = kwargs.get('device', None)
         if device is not None:
-            self.device = torch.device(device)
+            self.device = self.cfg.device = torch.device(device)
         return super().to(**kwargs)
 
-    def forward(self, B, T, C, w, u, k, v):
+    def forward(self, batch_size, seq_len, embeding_dim, time_decay,
+                time_first, k, v):
         assert self.device != torch.device(
             "cpu"), "WKV is not implemented for CPU"
-        return self._WKV.apply(B, T, C, w, u, k, v, self.wkv_cuda)
+        return self._WKV.apply(batch_size, seq_len, embeding_dim, time_decay,
+                               time_first, k, v, self.wkv_cuda, self.cfg)
