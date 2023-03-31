@@ -8,11 +8,11 @@ template <typename F>
 __global__ void kernel_forward(const int B,                     // batch size
                                const int T,                     // sequence length
                                const int C,                     // dim_att (number of channels)
-                               const F *__restrict__ const _w_timedecay,  // -exp(time decay)
-                               const F *__restrict__ const _u_timefirst,  // time first
-                               const F *__restrict__ const _k,  // keys
-                               const F *__restrict__ const _v,  // values
-                               F *__restrict__ const _y
+                               const F *__restrict__ const _w_timedecay,  // -exp(time decay) [attention_dim]
+                               const F *__restrict__ const _u_timefirst,  // time first [attention_dim]
+                               const F *__restrict__ const _k,  // keys [batch_size, sequence_length, embedding_dim]
+                               const F *__restrict__ const _v,  // values [batch_size, sequence_length, embedding_dim]
+                               F *__restrict__ const _y       // output [batch_size, sequence_length, embedding_dim]
                                ) {
     // - this block of code defines the area in the batch tensors that this thread will work on
     const int idx = blockIdx.x * blockDim.x + threadIdx.x; // this idx is for the whole batch
@@ -21,7 +21,7 @@ __global__ void kernel_forward(const int B,                     // batch size
     const int _offset = _b * T * C + _c;             // this idx is for the whole batch
     // -
 
-    // these are vectors of size C (channel dimension)
+    // these are vectors of size C (channel dimension) element in embedding_dim
     F u_timefirst = _u_timefirst[_c];
     F w_timedecay = _w_timedecay[_c];
     // these are tensors of size B x T x C (stored as array, access through pointers)
@@ -37,13 +37,13 @@ __global__ void kernel_forward(const int B,                     // batch size
         const F kk = k[ii];
         const F vv = v[ii];
 
-        F ww = u_timefirst + kk;
+        F ww = u_timefirst + kk; // 
         F p = max(pp, ww);
-        F e1 = exp(pp - p);
+        F e1 = exp(pp - p); // exp(pp - p) is the same as exp(pp) / exp(p)
         F e2 = exp(ww - p);
         y[ii] = (e1 * aa + e2 * vv) / (e1 * bb + e2);
         
-        ww = w_timedecay + pp;
+        ww = w_timedecay + pp; //
         p = max(ww, kk);
         e1 = exp(ww - p);
         e2 = exp(kk - p);
