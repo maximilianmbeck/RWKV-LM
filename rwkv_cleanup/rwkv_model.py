@@ -18,6 +18,7 @@ class RWKVConfig:
     wkv_config: WKVConfig = field(default_factory=lambda: WKVConfig())
     # TODO make bias configurable
 
+# TODO from here, create pytorch lightning module wrapper
 
 class RWKV(nn.Module):
 

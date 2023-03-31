@@ -27,7 +27,7 @@ class WKVConfig:
         self.device = torch.device(self.device)
 
     def float_mode_to_dtype(self):
-        if self.float_mode == "fp32":
+        if self.float_mode == "fp32" or '32' in str(self.float_mode):
             return torch.float32
         elif self.float_mode == "fp16":
             return torch.float16
