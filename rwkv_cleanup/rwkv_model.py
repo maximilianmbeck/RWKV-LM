@@ -4,7 +4,8 @@ from typing import Tuple
 
 import torch
 from torch import nn
-from wkv_kernel import WKV, WKVConfig
+
+from rwkv_cleanup.wkv_kernel import WKV, WKVConfig
 
 
 @dataclass
@@ -18,7 +19,9 @@ class RWKVConfig:
     wkv_config: WKVConfig = field(default_factory=lambda: WKVConfig())
     # TODO make bias configurable
 
+
 # TODO from here, create pytorch lightning module wrapper
+
 
 class RWKV(nn.Module):
 
@@ -196,7 +199,7 @@ class RWKVTimeMix(nn.Module):
 
         # init time mix constants
         time_mix_k, time_mix_v, time_mix_r = self._init_time_mix_constants()
-        req_grad = True # TODO make this configurable
+        req_grad = True  # TODO make this configurable
         self.time_mix_k = nn.Parameter(time_mix_k, requires_grad=req_grad)
         self.time_mix_v = nn.Parameter(time_mix_v, requires_grad=req_grad)
         self.time_mix_r = nn.Parameter(time_mix_r, requires_grad=req_grad)

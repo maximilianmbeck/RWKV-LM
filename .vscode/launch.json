@@ -75,7 +75,8 @@
                 "ddp_find_unused_parameters_false",
                 "--grad_cp",
                 "0", 
-                "--use_jit", "0"
+                "--use_jit", "0",
+                "--use_mymodel", "0"
             ],
             "justMyCode": false
         }, 

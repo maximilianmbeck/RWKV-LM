@@ -1,8 +1,14 @@
-import os, math, time, datetime, subprocess
-import torch
-from torch.utils.data import DataLoader
+import datetime
+import math
+import os
+import subprocess
+import time
+
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.utilities import rank_zero_info, rank_zero_only
+from torch.utils.data import DataLoader
+
 
 def my_save(dd, ff):
     if '14b-run1' not in ff:
@@ -46,7 +52,7 @@ class train_callback(pl.Callback):
 
         for param_group in trainer.optimizers[0].param_groups:
             if args.layerwise_lr > 0:
-                param_group["lr"] = lr * param_group["my_lr_scale"]
+                param_group["lr"] = lr * param_group.get("my_lr_scale", 1.0)
                 # print(param_group["lr"], param_group["my_lr_scale"])
             else:
                 param_group["lr"] = lr
@@ -153,8 +159,7 @@ class train_callback(pl.Callback):
 @rank_zero_only
 def generate_init_weight(model, init_weight_name):
     mm = model.generate_init_weight()
-
-    if model.args.my_pile_stage == 1:
+    if hasattr(model, 'args') and model.args.my_pile_stage == 1:
         if len(model.args.load_model) > 0:
             print(f"Combine weights from {model.args.load_model}...")
             load_dict = torch.load(model.args.load_model, map_location="cpu")
@@ -185,6 +190,6 @@ def generate_init_weight(model, init_weight_name):
     print(f"Save to {init_weight_name}...")
     torch.save(mm, init_weight_name)
 
-    if model.args.my_pile_stage == 1:
+    if hasattr(model, 'args') and model.args.my_pile_stage == 1:
         print("Done. Now go for stage 2.")
         exit(0)

@@ -350,10 +350,10 @@ if __name__ == "__main__":
         model = RWKV_IMG(args)
     else:
         if args.use_mymodel > 0:
-            sys.path.append('./../rwkv_cleanup/')
-            from rwkv_model import RWKV as MyRWKV
-            from rwkv_model import RWKVConfig
-            from wkv_kernel import WKVConfig
+            sys.path.append('./../')
+            from rwkv_cleanup.rwkv_model import RWKVConfig
+            from rwkv_cleanup.rwkv_pl_module import RWKVModel, RWKVModuleConfig
+            from rwkv_cleanup.wkv_kernel import WKVConfig
             model_cfg = RWKVConfig(
                 embedding_dim=args.n_embd,
                 attention_dim=args.dim_att,
@@ -362,7 +362,8 @@ if __name__ == "__main__":
                 vocab_size=args.vocab_size,
                 context_len=args.ctx_len,
                 wkv_config=WKVConfig(float_mode=args.precision))
-            model = MyRWKV(model_cfg)
+            cfg = RWKVModuleConfig(model=model_cfg)
+            model = RWKVModel(cfg=cfg, args=args)
         else:
             # use default model
             from src.model import RWKV
