@@ -55,11 +55,11 @@ class RWKVModel(pl.LightningModule):
             for name, param in self.model.named_parameters():
                 param_dict[name] = param
                 if 'time_decay' in name:
-                    lr_2x.add(param)
+                    lr_2x.add(name)
                 elif 'time_first' in name:
-                    lr_3x.add(param)
+                    lr_3x.add(name)
                 else:
-                    lr_1x.add(param)
+                    lr_1x.add(name)
             lr_1x = sorted(list(lr_1x))
             lr_2x = sorted(list(lr_2x))
             lr_3x = sorted(list(lr_3x))
