@@ -7,14 +7,14 @@ from torch import nn
 from rwkv_cleanup.rwkv_model import RWKV, RWKVConfig
 
 
-@dataclass 
+@dataclass
 class RWKVModuleConfig:
     """Configuration for RWKVModule."""
-    model : RWKVConfig
+    model: RWKVConfig
 
-    
 
 class RWKVModel(pl.LightningModule):
+
     def __init__(self, cfg: RWKVModuleConfig, **kwargs):
         super().__init__()
         self.cfg = cfg
@@ -27,10 +27,10 @@ class RWKVModel(pl.LightningModule):
 
         self.model = RWKV(cfg.model)
         self.loss = nn.CrossEntropyLoss()
-    
+
     def forward(self, x):
         return self.model(x)
-    
+
     def training_step(self, batch, batch_idx):
         x_idxes, y = batch
         y_hat = self(x_idxes)
@@ -40,18 +40,65 @@ class RWKVModel(pl.LightningModule):
         # TODO use Loss wrapper
 
         return loss
-    
+
     def configure_optimizers(self):
         betas = self.rwkv_args.get('betas', (0.9, 0.99))
         eps = self.rwkv_args.get('adam_eps', 1e-8)
         lr = self.rwkv_args.get('lr_init', 0.0008)
         print(f"Using lr={lr}, betas={betas}, eps={eps}")
-        optimizer = torch.optim.Adam(self.parameters(), lr=lr, betas=betas, eps=eps)
+        if self.rwkv_args.get('layerwise_lr', 0) > 0:
+            # time_decay have lr 2x
+            # time_first have lr 3x
+            print("Using layerwise lr")
+            lr_1x, lr_2x, lr_3x = set(), set(), set()
+            param_dict = {}
+            for name, param in self.model.named_parameters():
+                param_dict[name] = param
+                if 'time_decay' in name:
+                    lr_2x.add(param)
+                elif 'time_first' in name:
+                    lr_3x.add(param)
+                else:
+                    lr_1x.add(param)
+            lr_1x = sorted(list(lr_1x))
+            lr_2x = sorted(list(lr_2x))
+            lr_3x = sorted(list(lr_3x))
+            print(f"lr_1x: {lr_1x}")
+            print(f"lr_2x: {lr_2x}")
+            print(f"lr_3x: {lr_3x}")
+            optim_groups = [
+                {
+                    "params": [param_dict[n] for n in lr_1x],
+                    "weight_decay": 0.0,
+                    "my_lr_scale": 1.0
+                },
+                {
+                    "params": [param_dict[n] for n in lr_2x],
+                    "weight_decay": 0.0,
+                    "my_lr_scale": 2.0
+                },
+                {
+                    "params": [param_dict[n] for n in lr_3x],
+                    "weight_decay": 0.0,
+                    "my_lr_scale": 3.0
+                },
+            ]
+        else:
+            print("Using single lr")
+            optim_groups = [{
+                "params": [p for p in self.model.parameters()],
+                "weight_decay": 0.0
+            }]
+        optimizer = torch.optim.Adam(optim_groups,
+                                     lr=lr,
+                                     betas=betas,
+                                     eps=eps)
         return optimizer
 
     def generate_init_weight(self):
         """For compatibility reasons with RWKV trainer. Simply return the state dict of the model."""
         self.model.reset_parameters()
+
         return self.state_dict()
 
     def training_step_end(self, batch_parts):
