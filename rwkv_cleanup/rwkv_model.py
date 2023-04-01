@@ -201,9 +201,6 @@ class RWKVTimeMix(nn.Module):
                              self.time_first, k, v)
         return self.output(rwkv)
 
-    def reset_parameters(self):
-        raise NotImplementedError
-
     def _init_time_mix_constants(
             self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         num_blocks = self.rwkv_cfg.num_blocks

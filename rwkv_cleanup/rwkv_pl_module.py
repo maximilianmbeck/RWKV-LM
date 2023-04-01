@@ -51,6 +51,7 @@ class RWKVModel(pl.LightningModule):
 
     def generate_init_weight(self):
         """For compatibility reasons with RWKV trainer. Simply return the state dict of the model."""
+        self.model.reset_parameters()
         return self.state_dict()
 
     def training_step_end(self, batch_parts):
