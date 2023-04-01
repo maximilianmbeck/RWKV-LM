@@ -1,3 +1,4 @@
+import math
 import os
 from dataclasses import dataclass, field
 from typing import Tuple
@@ -17,10 +18,6 @@ class RWKVConfig:
     vocab_size: int
     context_len: int
     wkv_config: WKVConfig = field(default_factory=lambda: WKVConfig())
-    # TODO make bias configurable
-
-
-# TODO from here, create pytorch lightning module wrapper
 
 
 class RWKV(nn.Module):
@@ -41,6 +38,22 @@ class RWKV(nn.Module):
         self.head = nn.Linear(self.cfg.embedding_dim,
                               self.cfg.vocab_size,
                               bias=False)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        # init embedding 
+        # default init is zero # TODO try this
+        # we use a narrow uniform init, in the original code they use the initial learning rate
+        # we just set it to a small value
+        emb_init_range = 1e-3
+        nn.init.uniform_(self.embedding.weight, a=-emb_init_range, b=emb_init_range)
+        # init blocks
+        for b in self.blocks:
+            b.reset_parameters()
+        # init head and layer norm
+        self.head.reset_parameters()
+        self.ln_out.reset_parameters()
+
 
     def forward(self, x):
         # input shape: (B, T), T <= context_len, T are token ids
@@ -57,91 +70,13 @@ class RWKV(nn.Module):
         return x
 
 
-#------------------------------------------------
-#                CUDA Kernel
-#------------------------------------------------
-
-# # copy from RWKV-v4neo
-
-# T_MAX = 1024  # increase this if your ctx_len is long [NOTE: TAKES LOTS OF VRAM!]
-# # it's possible to go beyond CUDA limitations if you slice the ctx and pass the hidden state in each slice
-
-# from torch.utils.cpp_extension import load
-
-# wkv_cuda = load(name="wkv",
-#                 sources=["cuda/wkv_op.cpp", "cuda/wkv_cuda.cu"],
-#                 verbose=True,
-#                 extra_cuda_cflags=[
-#                     '-res-usage', '--maxrregcount 60', '--use_fast_math',
-#                     '-O3', '-Xptxas -O3', f'-DTmax={T_MAX}'
-#                 ])
-
-# # TODO: make a class and pass arguments to the constructor
-# class WKV(torch.autograd.Function):
-
-#     @staticmethod
-#     def forward(ctx, B, T, C, w, u, k, v):
-#         ctx.B = B
-#         ctx.T = T
-#         ctx.C = C
-#         assert T <= T_MAX
-#         assert B * C % min(C, 1024) == 0
-#         if '32' in os.environ['RWKV_FLOAT_MODE']:
-#             w = -torch.exp(w.contiguous())
-#             u = u.contiguous()
-#             k = k.contiguous()
-#             v = v.contiguous()
-#         else:
-#             w = -torch.exp(w.float().contiguous())
-#             u = u.float().contiguous()
-#             k = k.float().contiguous()
-#             v = v.float().contiguous()
-#         ctx.save_for_backward(w, u, k, v)
-#         y = torch.empty((B, T, C),
-#                         device='cuda',
-#                         memory_format=torch.contiguous_format)
-#         wkv_cuda.forward(B, T, C, w, u, k, v, y)
-#         if '32' in os.environ['RWKV_FLOAT_MODE']:
-#             return y
-#         elif os.environ['RWKV_FLOAT_MODE'] == 'fp16':
-#             return y.half()
-#         elif os.environ['RWKV_FLOAT_MODE'] == 'bf16':
-#             return y.bfloat16()
-
-#     @staticmethod
-#     def backward(ctx, gy):
-#         B = ctx.B
-#         T = ctx.T
-#         C = ctx.C
-#         assert T <= T_MAX
-#         assert B * C % min(C, 1024) == 0
-#         w, u, k, v = ctx.saved_tensors
-#         gw = torch.zeros((B, C), device='cuda').contiguous()
-#         gu = torch.zeros((B, C), device='cuda').contiguous()
-#         gk = torch.zeros((B, T, C), device='cuda').contiguous()
-#         gv = torch.zeros((B, T, C), device='cuda').contiguous()
-#         if '32' in os.environ['RWKV_FLOAT_MODE']:
-#             wkv_cuda.backward(B, T, C, w, u, k, v, gy.contiguous(), gw, gu, gk,
-#                               gv)
-#         else:
-#             wkv_cuda.backward(B, T, C, w, u, k, v,
-#                               gy.float().contiguous(), gw, gu, gk, gv)
-#         gw = torch.sum(gw, dim=0)
-#         gu = torch.sum(gu, dim=0)
-#         if '32' in os.environ['RWKV_FLOAT_MODE']:
-#             return (None, None, None, gw, gu, gk, gv)
-#         elif os.environ['RWKV_FLOAT_MODE'] == 'fp16':
-#             return (None, None, None, gw.half(), gu.half(), gk.half(),
-#                     gv.half())
-#         elif os.environ['RWKV_FLOAT_MODE'] == 'bf16':
-#             return (None, None, None, gw.bfloat16(), gu.bfloat16(),
-#                     gk.bfloat16(), gv.bfloat16())
-
-# def RUN_CUDA(B, T, C, w, u, k, v):
-#     return WKV.apply(B, T, C, w.cuda(), u.cuda(), k.cuda(), v.cuda())
-
-#------------------------------------------------
-
+def _calc_gain(weight: torch.Tensor) -> float:
+    """Calculate the gain value of the given weight tensor."""
+    gain = 1.0
+    fan_in, fan_out = nn.init._calculate_fan_in_and_fan_out(weight)
+    if fan_out > fan_in:
+        gain = math.sqrt(fan_out / fan_in)
+    return gain
 
 class RWKVBlock(nn.Module):
 
@@ -197,22 +132,24 @@ class RWKVTimeMix(nn.Module):
         self.rwkv_cfg = rwkv_config
         self.block_id = block_id
 
-        # init time mix constants
-        time_mix_k, time_mix_v, time_mix_r = self._init_time_mix_constants()
-        req_grad = True  # TODO make this configurable
-        self.time_mix_k = nn.Parameter(time_mix_k, requires_grad=req_grad)
-        self.time_mix_v = nn.Parameter(time_mix_v, requires_grad=req_grad)
-        self.time_mix_r = nn.Parameter(time_mix_r, requires_grad=req_grad)
-
-        # init time decay
-        time_decay, time_first = self._init_time_decay_constants()
-        self.time_decay = nn.Parameter(time_decay, requires_grad=req_grad)
-        self.time_first = nn.Parameter(time_first, requires_grad=req_grad)
-
-        # init layers / parameters
         embedding_dim = self.rwkv_cfg.embedding_dim
         attention_dim = self.rwkv_cfg.attention_dim
+        # init time mix constants
+        req_grad = True  # TODO make this configurable
+        self.time_mix_k = nn.Parameter(torch.empty((1, 1, embedding_dim)),
+                                       requires_grad=req_grad)
+        self.time_mix_v = nn.Parameter(torch.empty((1, 1, embedding_dim)),
+                                       requires_grad=req_grad)
+        self.time_mix_r = nn.Parameter(torch.empty((1, 1, embedding_dim)),
+                                       requires_grad=req_grad)
 
+        # init time decay
+        self.time_decay = nn.Parameter(torch.empty((attention_dim, )),
+                                       requires_grad=req_grad)
+        self.time_first = nn.Parameter(torch.empty((attention_dim, )),
+                                       requires_grad=req_grad)
+
+        # init layers / parameters
         self.time_shift = nn.ZeroPad2d((0, 0, 1, -1))
         self.key = nn.Linear(embedding_dim, attention_dim, bias=False)
         self.value = nn.Linear(embedding_dim, attention_dim, bias=False)
@@ -220,6 +157,26 @@ class RWKVTimeMix(nn.Module):
         self.output = nn.Linear(attention_dim, embedding_dim, bias=False)
 
         self.wkv = WKV(config=self.rwkv_cfg.wkv_config)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        # init time mix constants
+        time_mix_k, time_mix_v, time_mix_r = self._init_time_mix_constants()
+        req_grad = True
+        self.time_mix_k = nn.Parameter(time_mix_k, requires_grad=req_grad)
+        self.time_mix_v = nn.Parameter(time_mix_v, requires_grad=req_grad)
+        self.time_mix_r = nn.Parameter(time_mix_r, requires_grad=req_grad)
+        # init time decay
+        time_decay, time_first = self._init_time_decay_constants()
+        self.time_decay = nn.Parameter(time_decay, requires_grad=req_grad)
+        self.time_first = nn.Parameter(time_first, requires_grad=req_grad)
+        # init layers / parameters
+        # ZERO INIT
+        nn.init.zeros_(self.key.weight)
+        nn.init.zeros_(self.receptance.weight)
+        nn.init.zeros_(self.output.weight)
+        # ORTHOGONAL INIT
+        nn.init.orthogonal_(self.value.weight, gain=_calc_gain(self.value.weight))
 
     def _compute_rkv(self, x):
         xx = self.time_shift(
@@ -297,23 +254,34 @@ class RWKVChannelMix(nn.Module):
         self.rwkv_cfg = rwkv_config
         self.block_id = block_id
 
+        embedding_dim = self.rwkv_cfg.embedding_dim
+        ffn_dim = self.rwkv_cfg.ffn_dim
+        # init time mix constants
+        req_grad = True
+        self.time_mix_k = nn.Parameter(torch.empty((1, 1, embedding_dim)),
+                                       requires_grad=req_grad)
+        self.time_mix_r = nn.Parameter(torch.empty((1, 1, embedding_dim)),
+                                       requires_grad=req_grad)
+
+        # init layers / parameters
+        self.time_shift = nn.ZeroPad2d((0, 0, 1, -1))
+        self.key = nn.Linear(embedding_dim, ffn_dim, bias=False)
+        self.receptance = nn.Linear(embedding_dim, embedding_dim, bias=False)
+        self.value = nn.Linear(ffn_dim, embedding_dim, bias=False)
+        self.reset_parameters()
+
+    def reset_parameters(self):
         # init time mix constants
         time_mix_k, time_mix_r = self._init_time_mix_constants()
         req_grad = True
         self.time_mix_k = nn.Parameter(time_mix_k, requires_grad=req_grad)
         self.time_mix_r = nn.Parameter(time_mix_r, requires_grad=req_grad)
-
         # init layers / parameters
-        embedding_dim = self.rwkv_cfg.embedding_dim
-        ffn_dim = self.rwkv_cfg.ffn_dim
-
-        self.time_shift = nn.ZeroPad2d((0, 0, 1, -1))
-        self.key = nn.Linear(embedding_dim, ffn_dim, bias=False)
-        self.receptance = nn.Linear(embedding_dim, embedding_dim, bias=False)
-        self.value = nn.Linear(ffn_dim, embedding_dim, bias=False)
-
-    def reset_parameters(self):
-        raise NotImplementedError
+        # ZERO INIT
+        nn.init.zeros_(self.receptance.weight)
+        nn.init.zeros_(self.value.weight)
+        # ORTHOGONAL INIT
+        nn.init.orthogonal_(self.key.weight, gain=_calc_gain(self.key.weight))
 
     def _init_time_mix_constants(self) -> Tuple[torch.Tensor, torch.Tensor]:
         num_blocks = self.rwkv_cfg.num_blocks
