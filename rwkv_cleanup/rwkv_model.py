@@ -196,14 +196,15 @@ class RWKVTimeMix(nn.Module):
 
         # init time mix constants
         time_mix_k, time_mix_v, time_mix_r = self._init_time_mix_constants()
-        self.register_buffer('time_mix_k', time_mix_k, persistent=True)
-        self.register_buffer('time_mix_v', time_mix_v, persistent=True)
-        self.register_buffer('time_mix_r', time_mix_r, persistent=True)
+        req_grad = True # TODO make this configurable
+        self.time_mix_k = nn.Parameter(time_mix_k, requires_grad=req_grad)
+        self.time_mix_v = nn.Parameter(time_mix_v, requires_grad=req_grad)
+        self.time_mix_r = nn.Parameter(time_mix_r, requires_grad=req_grad)
 
         # init time decay
         time_decay, time_first = self._init_time_decay_constants()
-        self.register_buffer('time_decay', time_decay, persistent=True)
-        self.register_buffer('time_first', time_first, persistent=True)
+        self.time_decay = nn.Parameter(time_decay, requires_grad=req_grad)
+        self.time_first = nn.Parameter(time_first, requires_grad=req_grad)
 
         # init layers / parameters
         embedding_dim = self.rwkv_cfg.embedding_dim
@@ -295,8 +296,9 @@ class RWKVChannelMix(nn.Module):
 
         # init time mix constants
         time_mix_k, time_mix_r = self._init_time_mix_constants()
-        self.register_buffer('time_mix_k', time_mix_k, persistent=True)
-        self.register_buffer('time_mix_r', time_mix_r, persistent=True)
+        req_grad = True
+        self.time_mix_k = nn.Parameter(time_mix_k, requires_grad=req_grad)
+        self.time_mix_r = nn.Parameter(time_mix_r, requires_grad=req_grad)
 
         # init layers / parameters
         embedding_dim = self.rwkv_cfg.embedding_dim
