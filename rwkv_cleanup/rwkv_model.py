@@ -41,19 +41,20 @@ class RWKV(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
-        # init embedding 
+        # init embedding
         # default init is zero # TODO try this
         # we use a narrow uniform init, in the original code they use the initial learning rate
         # we just set it to a small value
-        emb_init_range = 1e-3
-        nn.init.uniform_(self.embedding.weight, a=-emb_init_range, b=emb_init_range)
+        emb_init_range = 0.0008 #1e-3
+        nn.init.uniform_(self.embedding.weight,
+                         a=-emb_init_range,
+                         b=emb_init_range)
         # init blocks
         for b in self.blocks:
             b.reset_parameters()
         # init head and layer norm
         self.head.reset_parameters()
         self.ln_out.reset_parameters()
-
 
     def forward(self, x):
         # input shape: (B, T), T <= context_len, T are token ids
@@ -77,6 +78,7 @@ def _calc_gain(weight: torch.Tensor) -> float:
     if fan_out > fan_in:
         gain = math.sqrt(fan_out / fan_in)
     return gain
+
 
 class RWKVBlock(nn.Module):
 
@@ -176,7 +178,8 @@ class RWKVTimeMix(nn.Module):
         nn.init.zeros_(self.receptance.weight)
         nn.init.zeros_(self.output.weight)
         # ORTHOGONAL INIT
-        nn.init.orthogonal_(self.value.weight, gain=_calc_gain(self.value.weight))
+        nn.init.orthogonal_(self.value.weight,
+                            gain=_calc_gain(self.value.weight))
 
     def _compute_rkv(self, x):
         xx = self.time_shift(
@@ -233,13 +236,13 @@ class RWKVTimeMix(nn.Module):
         for h in range(attention_dim):
             decay_speed[h] = -5 + 8 * (h / (attention_dim - 1))**(
                 0.7 + 1.3 * ratio_0_to_1)
-        time_decay = nn.Parameter(decay_speed)
+        time_decay = decay_speed
 
         # time first # TODO does this make sense?
         zigzag = torch.tensor([(i + 1) % 3 - 1
                                for i in range(attention_dim)]) * 0.5
-        time_first = nn.Parameter(
-            torch.ones(attention_dim) * torch.log(torch.tensor(0.3)) + zigzag)
+        time_first = torch.ones(attention_dim) * torch.log(
+            torch.tensor(0.3)) + zigzag
 
         return time_decay, time_first
 
