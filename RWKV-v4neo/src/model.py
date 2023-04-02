@@ -2,15 +2,21 @@
 # The RWKV Language Model - https://github.com/BlinkDL/RWKV-LM
 ########################################################################################################
 
-import os, math, gc, importlib
+import gc
+import importlib
+import math
+import os
+
+import pytorch_lightning as pl
 import torch
+
 # torch._C._jit_set_profiling_executor(True)
 # torch._C._jit_set_profiling_mode(True)
 import torch.nn as nn
-from torch.nn import functional as F
-import pytorch_lightning as pl
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_only
 from pytorch_lightning.strategies import DeepSpeedStrategy
+from pytorch_lightning.utilities import rank_zero_info, rank_zero_only
+from torch.nn import functional as F
+
 if importlib.util.find_spec('deepspeed'):
     import deepspeed
     from deepspeed.ops.adam import DeepSpeedCPUAdam, FusedAdam
