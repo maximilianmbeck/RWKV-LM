@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import pytorch_lightning as pl
 import torch
+from deepspeed.ops.adam import FusedAdam
 from torch import nn
 
 from rwkv_cleanup.rwkv_model import RWKV, RWKVConfig
@@ -12,7 +13,9 @@ class RWKVModuleConfig:
     """Configuration for RWKVModule."""
     model: RWKVConfig
 
+
 class L2Wrap(torch.autograd.Function):
+
     @staticmethod
     def forward(ctx, loss, y):
         ctx.save_for_backward(y)
@@ -27,6 +30,7 @@ class L2Wrap(torch.autograd.Function):
         gy = torch.zeros_like(y)
         gy.scatter_(-1, ids, maxx * factor)
         return (grad_output, gy)
+
 
 class RWKVModel(pl.LightningModule):
 
@@ -104,10 +108,19 @@ class RWKVModel(pl.LightningModule):
                 "params": [p for p in self.model.parameters()],
                 "weight_decay": 0.0
             }]
-        optimizer = torch.optim.Adam(optim_groups,
-                                     lr=lr,
-                                     betas=betas,
-                                     eps=eps)
+        # optimizer = torch.optim.Adam(optim_groups,
+        #                              lr=lr,
+        #                              betas=betas,
+        #                              eps=eps)
+
+        optimizer = FusedAdam(optim_groups,
+                              lr=lr,
+                              betas=betas,
+                              eps=eps,
+                              bias_correction=True,
+                              adam_w_mode=False,
+                              weight_decay=0.0,
+                              amsgrad=False)
         return optimizer
 
     def generate_init_weight(self):
