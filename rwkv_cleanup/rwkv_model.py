@@ -1,5 +1,4 @@
 import math
-import os
 from dataclasses import dataclass, field
 from typing import Tuple
 
@@ -45,7 +44,7 @@ class RWKV(nn.Module):
         # default init is zero # TODO try this
         # we use a narrow uniform init, in the original code they use the initial learning rate
         # we just set it to a small value
-        emb_init_range = 0.0008 #1e-3
+        emb_init_range = 0.0008  #1e-3
         nn.init.uniform_(self.embedding.weight,
                          a=-emb_init_range,
                          b=emb_init_range)
@@ -197,9 +196,7 @@ class RWKVTimeMix(nn.Module):
         B, T, C = x.size()  # x = (Batch,Time,Channel)
         attention_dim = self.rwkv_cfg.attention_dim
         sr, k, v = self._compute_rkv(x)
-        # rwkv = sr * RUN_CUDA(B, T, attention_dim, self.time_decay,
-        #                      self.time_first, k, v)
-        # use own implementation of WKV
+        # wkv cuda kernel
         rwkv = sr * self.wkv(B, T, attention_dim, self.time_decay,
                              self.time_first, k, v)
         return self.output(rwkv)

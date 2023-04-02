@@ -41,7 +41,7 @@ class WKV(nn.Module):
     _instance = None  # for singleton
 
     class _WKV(torch.autograd.Function):
-        
+
         wkv_cuda = None
         wkv_config: WKVConfig = None
 
@@ -126,17 +126,21 @@ class WKV(nn.Module):
             # call cuda kernel
             gy = gy.to(dtype=torch.float32,
                        memory_format=torch.contiguous_format)
-            # arg0: int, arg1: int, arg2: int, arg3: at::Tensor, arg4: at::Tensor, arg5: at::Tensor, arg6: at::Tensor, arg7: at::Tensor, arg8: at::Tensor, arg9: at::Tensor, arg10: at::Tensor, arg11: at::Tensor, arg12: at::Tensor
+            # arg0: int, arg1: int, arg2: int, arg3: at::Tensor, arg4: at::Tensor, arg5: at::Tensor, arg6: at::Tensor,
+            # arg7: at::Tensor, arg8: at::Tensor, arg9: at::Tensor, arg10: at::Tensor, arg11: at::Tensor, arg12: at::Tensor
             ctx.wkv_cuda.backward(batch_size, seq_len, embedding_dim,
                                   time_decay, time_first, k, v, y, gy,
                                   gtime_decay, gtime_first, gk, gv)
 
+            gtime_decay = gtime_decay.sum(dim=0)
+            gtime_first = gtime_first.sum(dim=0)
+
             # convert gradient tensors to correct dtype
             out_dtype = ctx.wkv_config.float_mode_to_dtype()
 
-            return (None, None, None, time_decay.to(dtype=out_dtype),
-                    time_first.to(dtype=out_dtype), k.to(dtype=out_dtype),
-                    v.to(dtype=out_dtype))
+            return (None, None, None, gtime_decay.to(dtype=out_dtype),
+                    gtime_first.to(dtype=out_dtype), gk.to(dtype=out_dtype),
+                    gv.to(dtype=out_dtype))
 
     def __new__(cls, config: WKVConfig = WKVConfig()):
         if cls._instance is None:
