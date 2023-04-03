@@ -1,3 +1,19 @@
+# FORK of RWKV-LM 
+
+## Goal: reproduce the model without cuda kernel
+The reproducing code is in `rwkv_cleanup`.
+
+Steps to make it work:
+
+- [x] Reimplement model with cuda kernel, matching enwik8 training curve
+- [ ] Reimplement cuda kernel in torch/numpy
+- [ ] Put cuda kernel in reproduced model, match envwik8 training curve
+
+---
+---
+
+
+
 # The RWKV Language Model (and my LM tricks)
 
 ## RWKV: Parallelizable RNN with Transformer-level LLM Performance (pronounced as "RwaKuv", from 4 major params: R W K V)
