@@ -9,6 +9,9 @@ Steps to make it work:
 - [ ] Reimplement cuda kernel in torch/numpy
 - [ ] Put cuda kernel in reproduced model, match envwik8 training curve
 
+Reproduced Learning Curve (with cuda kernel):
+![Loss curve with cuda](rwkv_cleanup/res/reproduce_with_cuda_kernel.png)
+
 ---
 ---
 
