@@ -5,7 +5,7 @@ from typing import Tuple
 import torch
 from torch import nn
 
-from rwkv_cleanup.wkv_kernel import WKV, WKVConfig
+from rwkv_cleanup.wkv_kernel import WKV, WKVConfig, WKVTorch
 
 
 @dataclass
@@ -157,7 +157,13 @@ class RWKVTimeMix(nn.Module):
         self.receptance = nn.Linear(embedding_dim, attention_dim, bias=False)
         self.output = nn.Linear(attention_dim, embedding_dim, bias=False)
 
-        self.wkv = WKV(config=self.rwkv_cfg.wkv_config)
+        if self.rwkv_cfg.wkv_config is not None:
+            # use CUDA implementation
+            self.wkv = WKV(config=self.rwkv_cfg.wkv_config)
+        else:
+            # use pure PyTorch implementation
+            self.wkv = WKVTorch()
+
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
@@ -196,7 +202,7 @@ class RWKVTimeMix(nn.Module):
         B, T, C = x.size()  # x = (Batch,Time,Channel)
         attention_dim = self.rwkv_cfg.attention_dim
         sr, k, v = self._compute_rkv(x)
-        # wkv cuda kernel
+        # wkv cuda/torch kernel
         rwkv = sr * self.wkv(B, T, attention_dim, self.time_decay,
                              self.time_first, k, v)
         return self.output(rwkv)

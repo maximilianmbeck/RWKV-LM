@@ -139,6 +139,7 @@ if __name__ == "__main__":
     # mbeck
     parser.add_argument("--use_jit", default=1, type=int)
     parser.add_argument("--use_mymodel", default=1, type=int)
+    parser.add_argument("--use_cuda_kernel", default=1, type=int)
 
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
@@ -362,6 +363,8 @@ if __name__ == "__main__":
                 vocab_size=args.vocab_size,
                 context_len=args.ctx_len,
                 wkv_config=WKVConfig(float_mode=args.precision))
+            if args.use_cuda_kernel == 0:
+                model_cfg.wkv_config = None
             cfg = RWKVModuleConfig(model=model_cfg)
             model = RWKVModel(cfg=cfg, args=args)
         else:

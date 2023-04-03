@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import List, Union
 
 import torch
+from einops import rearrange, repeat
 from torch import nn
 from torch.utils.cpp_extension import load
 
@@ -181,3 +182,41 @@ class WKV(nn.Module):
         self._WKV.wkv_config = self.cfg
         return self._WKV.apply(batch_size, seq_len, embeding_dim, time_decay,
                                time_first, k, v)
+
+class WKVTorch(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, batch_size, seq_len, embedding_dim, time_decay,
+                time_first, k, v):
+        dtype = k.dtype
+        device = k.device
+        y = torch.zeros(batch_size, seq_len, embedding_dim, dtype=dtype,
+                device=device)
+        MIN_VAL = -1e-38
+        # reshape inputs
+        k_ = rearrange(k, 'b s e -> s b e')
+        v_ = rearrange(v, 'b s e -> s b e')
+        y_ = rearrange(y, 'b s e -> s b e')
+        tf = repeat(time_first, 'e -> b e', b=batch_size)
+        td = repeat(time_decay, 'e -> b e', b=batch_size)
+        # running sums
+        aa = torch.zeros(batch_size, embedding_dim, dtype=dtype, device=device)
+        bb = torch.zeros(batch_size, embedding_dim, dtype=dtype, device=device)
+        pp = torch.full((batch_size, embedding_dim), MIN_VAL, dtype=dtype, device=device)
+        for t in range(seq_len):
+            ww = tf + k_[t]
+            p = torch.max(pp, ww)
+            e1 = torch.exp(pp - p)
+            e2 = torch.exp(ww - p)
+            y_[t] = (e1 * aa + e2 * v_[t]) / (e1 * bb + e2)
+            ww = td + pp
+            p = torch.max(ww, k_[t])
+            e1 = torch.exp(ww - p)
+            e2 = torch.exp(k_[t] - p)
+            aa = e1 * aa + e2 * v_[t]
+            bb = e1 * bb + e2
+            pp = p
+        y = rearrange(y_, 's b e -> b s e')
+        return y
