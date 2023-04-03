@@ -194,7 +194,7 @@ class WKVTorch(nn.Module):
         device = k.device
         y = torch.zeros(batch_size, seq_len, embedding_dim, dtype=dtype,
                 device=device)
-        MIN_VAL = -1e-38
+        MIN_VAL = -1e38
         # reshape inputs
         k_ = rearrange(k, 'b s e -> s b e')
         v_ = rearrange(v, 'b s e -> s b e')
