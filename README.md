@@ -6,11 +6,13 @@ The reproducing code is in `rwkv_cleanup`.
 Steps to make it work:
 
 - [x] Reimplement model with cuda kernel, matching enwik8 training curve
-- [ ] Reimplement cuda kernel in torch/numpy
-- [ ] Put cuda kernel in reproduced model, match envwik8 training curve
+- [x] Reimplement cuda kernel in torch/numpy
+- [x] Put cuda kernel in reproduced model, match envwik8 training curve
+- [ ] use torch 2.0 and torch.compile to speed up
 
 Reproduced Learning Curve (with cuda kernel):
-![Loss curve with cuda](rwkv_cleanup/res/reproduce_with_cuda_kernel.png)
+![Loss curve with cuda](rwkv_cleanup/res/loss.png)
+![Training speed](rwkv_cleanup/res/training_speed.png)
 
 ---
 ---
