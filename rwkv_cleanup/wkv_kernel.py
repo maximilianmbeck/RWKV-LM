@@ -88,7 +88,7 @@ class WKV(nn.Module):
                             memory_format=torch.contiguous_format)
 
             # call cuda kernel
-            time_decay = -torch.exp(time_decay)
+            time_decay = -torch.exp(time_decay) # TODO why is this necessary?
             wkv_cuda.forward(batch_size, seq_len, embedding_dim, time_decay,
                              time_first, k, v, y)
             ctx.save_for_backward(time_decay, time_first, k, v, y)
@@ -187,6 +187,7 @@ class WKVTorch(nn.Module):
 
     def __init__(self):
         super().__init__()
+        # TODO did not add time_decay = -torch.exp(time_decay) here, is it necessary?, so far it seems to work without it
 
     def forward(self, batch_size, seq_len, embedding_dim, time_decay,
                 time_first, k, v):
