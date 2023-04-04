@@ -88,7 +88,7 @@ class WKV(nn.Module):
                             memory_format=torch.contiguous_format)
 
             # call cuda kernel
-            time_decay = -torch.exp(time_decay) # TODO why is this necessary?
+            time_decay = -torch.exp(time_decay)  # TODO why is this necessary?
             wkv_cuda.forward(batch_size, seq_len, embedding_dim, time_decay,
                              time_first, k, v, y)
             ctx.save_for_backward(time_decay, time_first, k, v, y)
@@ -183,6 +183,7 @@ class WKV(nn.Module):
         return self._WKV.apply(batch_size, seq_len, embeding_dim, time_decay,
                                time_first, k, v)
 
+
 class WKVTorch(nn.Module):
 
     def __init__(self):
@@ -193,9 +194,12 @@ class WKVTorch(nn.Module):
                 time_first, k, v):
         dtype = k.dtype
         device = k.device
-        y = torch.zeros(batch_size, seq_len, embedding_dim, dtype=dtype,
-                device=device)
-        MIN_VAL = -1e38
+        y = torch.zeros(batch_size,
+                        seq_len,
+                        embedding_dim,
+                        dtype=dtype,
+                        device=device)
+        MIN_VAL = 0.0  #-1e38
         # reshape inputs
         k_ = rearrange(k, 'b s e -> s b e')
         v_ = rearrange(v, 'b s e -> s b e')
@@ -205,19 +209,19 @@ class WKVTorch(nn.Module):
         # running sums
         aa = torch.zeros(batch_size, embedding_dim, dtype=dtype, device=device)
         bb = torch.zeros(batch_size, embedding_dim, dtype=dtype, device=device)
-        pp = torch.full((batch_size, embedding_dim), MIN_VAL, dtype=dtype, device=device)
+        eps = torch.full((batch_size, embedding_dim),
+                         MIN_VAL,
+                         dtype=dtype,
+                         device=device)
         for t in range(seq_len):
-            ww = tf + k_[t]
-            p = torch.max(pp, ww)
-            e1 = torch.exp(pp - p)
-            e2 = torch.exp(ww - p)
-            y_[t] = (e1 * aa + e2 * v_[t]) / (e1 * bb + e2)
-            ww = td + pp
-            p = torch.max(ww, k_[t])
-            e1 = torch.exp(ww - p)
-            e2 = torch.exp(k_[t] - p)
-            aa = e1 * aa + e2 * v_[t]
-            bb = e1 * bb + e2
-            pp = p
-        y = rearrange(y_, 's b e -> b s e')
+            e_tf_k = torch.exp(tf + k_[t] - eps)
+            y_[t] = (aa + v_[t] * e_tf_k) / (bb + e_tf_k)
+            eps_next = torch.max(td + eps, k_[t])
+
+            e_td_k = torch.exp(td + eps - eps_next)
+            e_k = torch.exp(k_[t] - eps_next)
+            aa = (aa * e_td_k + v_[t] * e_k)
+            bb = (bb * e_td_k + e_k)
+            eps = eps_next
+            y = rearrange(y_, 's b e -> b s e')
         return y
