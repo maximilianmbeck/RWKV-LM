@@ -111,7 +111,7 @@ class WKV(nn.Module):
 
             device = ctx.wkv_config.device
             # allocate gradient tensors
-            gtime_decay = torch.zeros((batch_size, seq_len),
+            gtime_decay = torch.zeros((batch_size, embedding_dim),
                                       device=device,
                                       dtype=torch.float32).contiguous()
             gtime_first = torch.zeros((batch_size, embedding_dim),
