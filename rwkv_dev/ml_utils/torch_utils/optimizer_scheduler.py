@@ -1,9 +1,10 @@
 from typing import Any, Dict, Iterable, Tuple, Type
 
 import torch
-from ml_utils.config import NameAndKwargs
 from torch import nn, optim
 from torch.optim import lr_scheduler
+
+from rwkv_dev.ml_utils.config import NameAndKwargs
 
 _optim_registry = {
     "Adam": optim.Adam,

@@ -3,8 +3,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Union
 
 import torch
-from ml_utils.utils import get_device
 from omegaconf import DictConfig, OmegaConf
+
+from rwkv_dev.ml_utils.utils import get_device
 
 FN_CONFIG = 'config.yaml'
 DIR_OUTPUT_FOLDER_NAME = 'outputs'

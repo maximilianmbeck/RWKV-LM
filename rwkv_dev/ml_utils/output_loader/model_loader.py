@@ -4,10 +4,11 @@ from typing import Dict, Tuple, Union
 
 import torch
 from ml_utilities.torch_models.base_model import BaseModel
-from ml_utils.output_loader.directories import JobDirectory
-from ml_utils.utils import get_device
 from torch import nn
 from tqdm import tqdm
+
+from rwkv_dev.ml_utils.output_loader.directories import JobDirectory
+from rwkv_dev.ml_utils.utils import get_device
 
 LOGGER = logging.getLogger(__name__)
 
@@ -16,8 +17,8 @@ def get_best_model_idx(
     job_dir: Union[str, Path, JobDirectory],
     possible_specifiers: Tuple[str] = (),
 ) -> Tuple[int, str]:
-    from ml_utils.logger import FN_BEST_CHECKPOINT
-    from ml_utils.trainer.basetrainer import (
+    from rwkv_dev.ml_utils.logger import FN_BEST_CHECKPOINT
+    from rwkv_dev.ml_utils.trainer.basetrainer import (
         RUN_PROGRESS_MEASURE_EPOCH,
         RUN_PROGRESS_MEASURE_STEP,
     )

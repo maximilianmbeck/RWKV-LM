@@ -6,8 +6,9 @@ import numpy as np
 import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from ml_utils.logger import LOG_STEP_KEY
-from ml_utils.utils import convert_to_simple_str, make_str_filename
+
+from rwkv_dev.ml_utils.logger import LOG_STEP_KEY
+from rwkv_dev.ml_utils.utils import convert_to_simple_str, make_str_filename
 
 
 def plot_sweep_summary(summary_df: pd.DataFrame,
