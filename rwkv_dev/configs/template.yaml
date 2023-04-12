@@ -1,0 +1,39 @@
+start_num: 0
+config:
+  experiment_data:
+    entity: fslgroup
+    project_name: ml_utilities
+    experiment_tag: '0.0'
+    experiment_type: startnum_${start_num}
+    experiment_name: mnist-${config.experiment_data.experiment_tag}.${start_num}-lenet
+    experiment_dir: null
+    experiment_notes: 
+    seed: 0
+    gpu_id: 1
+   
+  model:
+    # model config
+  
+  trainer:
+    training_setup: supervised-universal
+    n_epochs: 500
+    early_stopping_patience: 200
+    val_every: 5
+    save_every: 24e3 
+    batch_size: 128
+    optimizer:
+      name: AdamW
+      kwargs:
+        lr: 0.001
+        weight_decay: 0.0
+    # loss: crossentropy
+    # metrics:
+    # - MulticlassAccuracy:
+    #     top_k: 1
+    #     num_classes: 10
+    num_workers: 4
+    additional_cfg:
+      log_train_step_every: 500
+
+  data:
+    # data config
