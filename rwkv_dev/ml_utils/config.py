@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 @dataclass
 class NameAndKwargs:
     name: str
-    kwargs: Dict[str, Any] = field(default_factory=dict)
+    kwargs: Optional[Dict[str, Any]] = field(default_factory=dict)
 
 @dataclass
 class ExperimentConfig:

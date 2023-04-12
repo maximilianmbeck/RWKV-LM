@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, Tuple, Union
 
 import torch
-from ml_utilities.torch_models.base_model import BaseModel
+from ml_utils.models.base_model import BaseModel
 from ml_utils.output_loader.directories import JobDirectory
 from ml_utils.utils import get_device
 from torch import nn

@@ -22,10 +22,11 @@ config:
       context_len: 512
       wkv_config: # set to null to use plain torch
         T_max: 1024
-        float_mode: 16
+        float_mode: '16'
+        device: 'cuda:1'
   
   trainer:
-    training_setup: supervised-universal
+    # training_setup: supervised-universal
     n_epochs: 50 #default: 500
     val_every: 5
     save_every: 24e3 
@@ -43,4 +44,5 @@ config:
     num_workers: 4
 
   data:
-    # data config
+    name: enwik8 
+    kwargs:

@@ -43,5 +43,5 @@ def run_job(cfg: DictConfig):
     trainer = UniversalRwkvTrainer(config=cfg,
                                    model=model,
                                    get_dataloaders=get_dataloaders,
-                                   get_metrics=get_metrics)
+                                   get_metrics=None)
     trainer.run()

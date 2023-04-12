@@ -1,8 +1,9 @@
 import math
 from dataclasses import dataclass, field
-from typing import Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import torch
+import torch.nn.functional as F
 from ml_utils.models.base_model import BaseModel
 from torch import nn
 
@@ -17,7 +18,7 @@ class RWKVConfig:
     num_blocks: int
     vocab_size: int
     context_len: int
-    wkv_config: WKVConfig = field(default_factory=lambda: WKVConfig())
+    wkv_config: Optional[Union[WKVConfig, Dict]] = field(default_factory=lambda: WKVConfig())
 
 
 class RWKV(BaseModel):
@@ -74,8 +75,9 @@ class RWKV(BaseModel):
         return x
 
     def get_loss_func(self):
-        return nn.CrossEntropyLoss()
-
+        def loss_fn(y_hat, y):
+            return F.cross_entropy(y_hat.view(-1, y_hat.size(-1)), y.view(-1))
+        return loss_fn
 
 def _calc_gain(weight: torch.Tensor) -> float:
     """Calculate the gain value of the given weight tensor."""

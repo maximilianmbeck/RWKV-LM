@@ -1,3 +1,5 @@
+rwkv_dev/outputs
+
 *.txt
 *.csv
 *.pth

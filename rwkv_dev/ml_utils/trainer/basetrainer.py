@@ -88,7 +88,7 @@ class BaseTrainer(Runner, ABC):
         self._logger: Logger = Logger(job_dir=self._experiment_dir)
 
         # progress variables
-        self._best_model: BaseModel = None
+        self._best_model_checkpoint_data: BaseModel = None
         self._progress_measure = RUN_PROGRESS_MEASURE_EPOCH if self._n_epochs > 0 else RUN_PROGRESS_MEASURE_STEP
         self._train_step_idx = 0
         self._epoch_idx = 0
@@ -108,9 +108,12 @@ class BaseTrainer(Runner, ABC):
         self._create_metrics()
 
         self._model.to(device=self.device)
-        self._loss.to(device=self.device)
-        self._train_metrics.to(device=self.device)
-        self._val_metrics.to(device=self.device)
+        if hasattr(self._loss, 'to'):
+            self._loss.to(device=self.device)
+        if self._train_metrics is not None:
+            self._train_metrics.to(device=self.device)
+        if self._val_metrics is not None:
+            self._val_metrics.to(device=self.device)
 
         self._create_optimizer_and_scheduler(self._model)
         self._train_step_idx = 0
@@ -323,7 +326,7 @@ class BaseTrainer(Runner, ABC):
 
         # save initialized/untrained model
         self._create_checkpoint()
-        self._best_model = copy.deepcopy(self._model).to(torch.device('cpu'))
+        self._best_model_checkpoint_data = self._model.get_checkpoint_data()
         self._train_step_idx += 1
         self._epoch_idx += 1
         while self._epoch_idx <= (self._n_epochs):
@@ -353,7 +356,7 @@ class BaseTrainer(Runner, ABC):
             self._logger.save_best_checkpoint_idx(specifier=self._progress_measure, best_idx=self._best_idx)
 
             if self._best_idx > 0:
-                self._logger.save_checkpoint(self._best_model.get_checkpoint_data(),
+                self._logger.save_checkpoint(self._best_model_checkpoint_data,
                                              idx=self._best_idx,
                                              specifier=self._progress_measure,
                                              name='model')
@@ -401,7 +404,7 @@ class BaseTrainer(Runner, ABC):
                 )
                 self._best_idx = idx
                 self._best_val_score = val_score
-                self._best_model = copy.deepcopy(self._model).to(torch.device('cpu'))
+                self._best_model_checkpoint_data = self._model.get_checkpoint_data()
 
             if self._early_stopping_patience > 0:
                 if ((lower_is_better and val_score >= self._best_val_score)
