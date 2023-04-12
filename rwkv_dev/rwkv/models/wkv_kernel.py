@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Union
 
 import torch
@@ -14,8 +15,10 @@ from torch.utils.cpp_extension import load
 class WKVConfig:
     T_max: int = 1024  # max sequence length within cuda operations
     cpp_ext_name: str = 'wkv'
-    cpp_ext_sources: List[str] = field(
-        default_factory=lambda: ['cuda/wkv_op.cpp', 'cuda/wkv_cuda.cu'])
+    cpp_ext_sources: List[str] = field(default_factory=lambda: [
+        str(Path(__file__).parent / 'cuda/wkv_op.cpp'),
+        str(Path(__file__).parent / 'cuda/wkv_cuda.cu')
+    ])
     extra_cuda_cflags: List[str] = field(default_factory=lambda: [
         '-res-usage', '--maxrregcount 60', '--use_fast_math', '-O3',
         '-Xptxas -O3'
