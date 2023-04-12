@@ -3,9 +3,8 @@ from dataclasses import dataclass, field
 from typing import Tuple
 
 import torch
+from ml_utils.models.base_model import BaseModel
 from torch import nn
-
-from rwkv_dev.ml_utils.models.base_model import BaseModel
 
 from .wkv_kernel import WKV, WKVConfig, WKVTorch
 

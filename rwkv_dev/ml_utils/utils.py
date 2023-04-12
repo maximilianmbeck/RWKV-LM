@@ -127,7 +127,7 @@ def setup_experiment_dir(experiment_name: str,
     Returns:
         Path: the path to the created run directory
     """
-    from rwkv_dev.ml_utils.time_utils import FORMAT_DATETIME_SHORT
+    from ml_utils.time_utils import FORMAT_DATETIME_SHORT
     now = datetime.now().strftime(FORMAT_DATETIME_SHORT)
 
     run_name = f'{experiment_name}--{now}'
@@ -150,7 +150,7 @@ def setup_logging(logfile: str = "output.log"):
     Args:
         log_file (str, optional): Name of the log file. Defaults to "output.log".
     """
-    from rwkv_dev.ml_utils.logger import FORMAT_LOGGING
+    from ml_utils.logger import FORMAT_LOGGING
 
     file_handler = logging.FileHandler(filename=logfile)
     stdout_handler = logging.StreamHandler(sys.stdout)
@@ -390,7 +390,7 @@ def sweep_param_cfg_to_str(sweep_param_cfg: Union[DictConfig, Dict[str, Any]]) -
     Returns:
         str: String representation for sweep.
     """
-    from rwkv_dev.ml_utils.run_utils.sweep import SWEEP_AXES_KEY, SWEEP_TYPE_KEY
+    from ml_utils.run_utils.sweep import SWEEP_AXES_KEY, SWEEP_TYPE_KEY
 
     sweep_type = sweep_param_cfg[SWEEP_TYPE_KEY]
     sweep_axes = sweep_param_cfg[SWEEP_AXES_KEY]

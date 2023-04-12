@@ -2,10 +2,9 @@ import dacite
 from dacite import from_dict
 from ml_utils.run_utils.runner import setup_directory
 from omegaconf import DictConfig, OmegaConf
+from rwkv.models import get_model
+from rwkv.trainer import UniversalRwkvTrainer
 from torch.utils import data
-
-from rwkv_dev.rwkv.models import get_model
-from rwkv_dev.rwkv.trainer import UniversalRwkvTrainer
 
 
 def run_job(cfg: DictConfig):
@@ -21,7 +20,7 @@ def run_job(cfg: DictConfig):
     # create dataloader
     # TODO make this configurable
     def get_dataloaders():
-        from rwkv_dev.rwkv.data.enwik8_dataset import EnWik8
+        from rwkv.data.enwik8_dataset import EnWik8
         ds = EnWik8(
             datafile=
             '/system/user/beck/pwbeck/projects/rwkv/RWKV-LM/data/enwik8')

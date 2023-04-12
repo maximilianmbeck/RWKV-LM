@@ -4,16 +4,15 @@ from typing import Any, Callable, Dict, List, Union
 
 import torch
 import torch.utils.data as data
-from torch import nn
-from torchmetrics import MetricCollection
-
-from rwkv_dev.ml_utils.config import Config
-from rwkv_dev.ml_utils.logger import Logger, create_wandb_init_args
-from rwkv_dev.ml_utils.models.base_model import BaseModel
-from rwkv_dev.ml_utils.torch_utils.optimizer_scheduler import (
+from ml_utils.config import Config
+from ml_utils.logger import Logger, create_wandb_init_args
+from ml_utils.models.base_model import BaseModel
+from ml_utils.torch_utils.optimizer_scheduler import (
     create_optimizer_and_scheduler_from_config,
 )
-from rwkv_dev.ml_utils.trainer.basetrainer import BaseTrainer
+from ml_utils.trainer.basetrainer import BaseTrainer
+from torch import nn
+from torchmetrics import MetricCollection
 
 LOGGER = logging.getLogger(__name__)
 
@@ -99,7 +98,7 @@ class UniversalRwkvTrainer(BaseTrainer):
         self._loss = self._model.get_loss_func()
 
     def _create_metrics(self) -> None:
-        from rwkv_dev.ml_utils.torch_utils.metrics import Loss
+        from ml_utils.torch_utils.metrics import Loss
         if self._get_metrics is not None:
             LOGGER.info('Creating metrics.')
             self._train_metrics, self._val_metrics = self._get_metrics()

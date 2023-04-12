@@ -8,16 +8,15 @@ import numpy as np
 import pandas as pd
 import torch
 from joblib import Parallel, delayed
-from ml_utilities.torch_models.base_model import BaseModel
-from omegaconf import DictConfig, OmegaConf
-from tqdm import tqdm
-
-from rwkv_dev.ml_utils.run_utils.run_handler import EXP_NAME_DIVIDER
-from rwkv_dev.ml_utils.utils import (
+from ml_utils.models.base_model import BaseModel
+from ml_utils.run_utils.run_handler import EXP_NAME_DIVIDER
+from ml_utils.utils import (
     convert_dict_to_python_types,
     convert_listofdicts_to_dictoflists,
     flatten_hierarchical_dict,
 )
+from omegaconf import DictConfig, OmegaConf
+from tqdm import tqdm
 
 from .directories import JobDirectory, SweepDirectory
 from .model_loader import get_best_model_idx, load_model_from_idx
@@ -69,7 +68,7 @@ class JobResult:
     @property
     def override_hpparams(self) -> Dict[str, Any]:
         """Return the hyper-parameters that where overriden by a sweep."""
-        from rwkv_dev.ml_utils.run_utils.sweep import OVERRIDE_PARAMS_KEY
+        from ml_utils.run_utils.sweep import OVERRIDE_PARAMS_KEY
         cfg = self.config
         override_hpparams = cfg.get(OVERRIDE_PARAMS_KEY, {})
         override_hpparams = flatten_hierarchical_dict(override_hpparams)
@@ -90,7 +89,7 @@ class JobResult:
     def data_log_sources(self) -> List[str]:
         """The data log sources."""
         log_dir = self._job_dir.stats_folder
-        from rwkv_dev.ml_utils.logger import FN_DATA_LOG_PREFIX
+        from ml_utils.logger import FN_DATA_LOG_PREFIX
         return [p.stem.replace(FN_DATA_LOG_PREFIX, '') for p in log_dir.glob(pattern=f'{FN_DATA_LOG_PREFIX}*')]
 
     @property
@@ -173,8 +172,8 @@ class JobResult:
         Returns:
             pd.DataFrame: The summary table.
         """
-        from rwkv_dev.ml_utils.logger import FN_FINAL_RESULTS
-        from rwkv_dev.ml_utils.trainer.basetrainer import RUN_PROGRESS_MEASURE_STEP
+        from ml_utils.logger import FN_FINAL_RESULTS
+        from ml_utils.trainer.basetrainer import RUN_PROGRESS_MEASURE_STEP
 
         summary_dict = OmegaConf.to_container(OmegaConf.load(self._job_dir.stats_folder / f'{FN_FINAL_RESULTS}.yaml'))
         if log_source:
@@ -227,7 +226,7 @@ class JobResult:
         Returns:
             pd.DataFrame: The log table.
         """
-        from rwkv_dev.ml_utils.logger import FN_DATA_LOG, LOG_STEP_KEY
+        from ml_utils.logger import FN_DATA_LOG, LOG_STEP_KEY
         if source == []:
             source = self.data_log_sources
         elif not isinstance(source, list):
@@ -319,7 +318,7 @@ class SweepResult:
     def sweep_params(self) -> List[str]:
         """Parameters that were modified during sweep."""
         cfg = self.config
-        from rwkv_dev.ml_utils.run_utils.sweep import SWEEP_AXES_KEY
+        from ml_utils.run_utils.sweep import SWEEP_AXES_KEY
         return [ax.parameter for ax in cfg.sweep[SWEEP_AXES_KEY]]
 
     @property
@@ -330,7 +329,7 @@ class SweepResult:
     @property
     def sweep_str(self) -> str:
         """Sweep parameters in a string representation."""
-        from rwkv_dev.ml_utils.run_utils.sweep import SWEEP_AXES_KEY, SWEEP_TYPE_KEY
+        from ml_utils.run_utils.sweep import SWEEP_AXES_KEY, SWEEP_TYPE_KEY
         sweep_param_cfg = self.sweep_cfg
         if not sweep_param_cfg:
             return 'No sweep.'

@@ -11,3 +11,5 @@
 - pytorch-lightning
 - hugginface: transformers, datasets, tokenizers
 - nvcc: https://anaconda.org/conda-forge/cudatoolkit-dev 
+- wandb
+- joblib

@@ -5,9 +5,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union
 
 import torch
+from ml_utils.utils import get_device
 from torch import nn
-
-from rwkv_dev.ml_utils.utils import get_device
 
 FN_MODEL_PREFIX = 'model_'
 FN_MODEL_FILE_EXT = '.p'

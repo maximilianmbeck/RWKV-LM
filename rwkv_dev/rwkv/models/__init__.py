@@ -3,10 +3,9 @@
 from typing import Dict, Type, Union
 
 from dacite import from_dict
+from ml_utils.config import NameAndKwargs
+from ml_utils.models.base_model import BaseModel
 from omegaconf import DictConfig, OmegaConf
-
-from rwkv_dev.ml_utils.config import NameAndKwargs
-from rwkv_dev.ml_utils.models.base_model import BaseModel
 
 from .rwkv_model import RWKV
 
