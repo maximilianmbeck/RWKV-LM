@@ -362,8 +362,12 @@ if __name__ == "__main__":
                 num_blocks=args.n_layer,
                 vocab_size=args.vocab_size,
                 context_len=args.ctx_len,
-                wkv_config=WKVConfig(float_mode=args.precision))
+                wkv_config=WKVConfig(
+                    T_max=args.ctx_len if args.ctx_len > 1024 else 1024,
+                    float_mode=args.precision)
+                )
             if args.use_cuda_kernel == 0:
+                rank_zero_info("Using pure PyTorch implementation of WKV")
                 model_cfg.wkv_config = None
             cfg = RWKVModuleConfig(model=model_cfg)
             model = RWKVModel(cfg=cfg, args=args)
