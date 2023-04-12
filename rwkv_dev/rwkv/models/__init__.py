@@ -18,10 +18,13 @@ def get_model_class(name: str) -> Type[BaseModel]:
     else:
         assert False, f"Unknown model name \"{name}\". Available models are: {str(_model_registry.keys())}"
 
-def get_model(config: Union[Dict, DictConfig]) -> BaseModel:
-    if isinstance(config, DictConfig):
-        config = OmegaConf.to_container(config)
-    cfg = from_dict(data_class=NameAndKwargs, data=config)
+def get_model(config: Union[Dict, DictConfig, NameAndKwargs]) -> BaseModel:
+    if not isinstance(config, NameAndKwargs):
+        if isinstance(config, DictConfig):
+            config = OmegaConf.to_container(config)
+        cfg = from_dict(data_class=NameAndKwargs, data=config)
+    else:
+        cfg = config
     model_class = get_model_class(cfg.name)
     model_cfg = from_dict(data_class=model_class.config_class, data=cfg.kwargs)
     return model_class(model_cfg)

@@ -28,9 +28,9 @@ class ResumeTrainingConfig:
 
 @dataclass
 class TrainerConfig:
-    training_setup: str
-    batch_size: int
     optimizer: NameAndKwargs
+    training_setup: Optional[str] = None
+    batch_size: Optional[int] = -1
     n_steps: Optional[Union[int, float]] = -1
     n_epochs: Optional[Union[int, float]] = -1
     val_every: Union[int, float] = 1
@@ -45,17 +45,9 @@ class TrainerConfig:
     additional_cfg: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
-class ModelConfig:
-    name: Optional[str]
-    kwargs: Optional[Dict[str, Any]] = field(default_factory=dict)
-    model_cfg: Optional[str] = None
-    init_model: Optional[str] = None
-    timm: Optional[Union[Dict[str, Any], str]] = None
-
-@dataclass
 class Config:
     experiment_data: ExperimentConfig
     trainer: TrainerConfig
-    model: ModelConfig
+    model: NameAndKwargs
     data: NameAndKwargs
     wandb: Optional[Dict[str, Any]] = None

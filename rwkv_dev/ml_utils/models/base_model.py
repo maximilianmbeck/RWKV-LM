@@ -26,6 +26,10 @@ class BaseModel(nn.Module, ABC):
     def forward(self, *args, **kwargs):
         pass
 
+    @abstractmethod
+    def get_loss_func(self, **kwargs):
+        pass
+
     def _get_constructor_parameters(self) -> dict:
         if isinstance(self.config, dict):
             return self.config
@@ -115,3 +119,4 @@ class BaseModel(nn.Module, ABC):
         model_class = get_model_class(checkpoint[f"{dict_key_prefix}name"])
         model = model_class.params_from_checkpoint(checkpoint=checkpoint, dict_key_prefix=dict_key_prefix)
         return model
+    

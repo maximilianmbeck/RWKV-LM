@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Union
 
 import pandas as pd
 import torch
-from ml_utilities.torch_models.base_model import BaseModel
 from torch import nn, optim
 from torch.optim import lr_scheduler
 from torchmetrics import MetricCollection
@@ -17,6 +16,7 @@ from tqdm import tqdm
 
 from rwkv_dev.ml_utils.config import ResumeTrainingConfig
 from rwkv_dev.ml_utils.logger import PREFIX_BEST_CHECKPOINT, Logger
+from rwkv_dev.ml_utils.models.base_model import BaseModel
 from rwkv_dev.ml_utils.output_loader.directories import JobDirectory
 from rwkv_dev.ml_utils.run_utils.runner import Runner
 from rwkv_dev.ml_utils.time_utils import Stopwatch
@@ -210,7 +210,11 @@ class BaseTrainer(Runner, ABC):
         """
         losses_epoch: List[Dict[str, torch.Tensor]] = []
 
-        pbar = tqdm(self._loaders['val'], desc=f'Val after {self._progress_measure} {progress_idx}', file=sys.stdout)
+        val_loader = self._loaders.get('val', None)
+        if val_loader is None or self._val_metrics is None:
+            return None
+        
+        pbar = tqdm(val_loader, desc=f'Val after {self._progress_measure} {progress_idx}', file=sys.stdout)
         with torch.no_grad():
             for xs, ys in pbar:
                 xs, ys = xs.to(self.device), ys.to(self.device)
@@ -381,6 +385,8 @@ class BaseTrainer(Runner, ABC):
             self._model.eval()
             with Stopwatch() as sw:
                 val_score = self._val_epoch(progress_idx=idx, trained_model=self._model)
+                if val_score is None:
+                    return False # keep training
             self._logger.log_keys_vals(prefix='timer',
                                        epoch=self._epoch_idx,
                                        train_step=self._train_step_idx,

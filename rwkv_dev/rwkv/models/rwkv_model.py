@@ -74,6 +74,9 @@ class RWKV(BaseModel):
         x = self.head(x)
         return x
 
+    def get_loss_func(self):
+        return nn.CrossEntropyLoss()
+
 
 def _calc_gain(weight: torch.Tensor) -> float:
     """Calculate the gain value of the given weight tensor."""
@@ -129,7 +132,6 @@ class RWKVBlock(nn.Module):
         x_ = self.ffn_channelmix(x_)
         x = x + x_
         return x
-
 
 class RWKVTimeMix(nn.Module):
 

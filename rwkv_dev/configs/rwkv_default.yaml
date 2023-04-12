@@ -18,7 +18,7 @@ config:
       attention_dim: 512
       ffn_dim: 2048
       num_blocks: 6
-      vocab_size: 0 # will be set by data
+      vocab_size: 6064 # will be set by data
       context_len: 512
       wkv_config: # set to null to use plain torch
         T_max: 1024

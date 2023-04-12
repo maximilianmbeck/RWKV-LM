@@ -14,6 +14,16 @@
             "justMyCode": false
         },
         {
+            "name": "own trainer",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/rwkv_dev/run.py",
+            "cwd": "${workspaceFolder}/rwkv_dev",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": ["-cn", "rwkv_default.yaml"]
+        },
+        {
             "name": "RMKV-v4neo train.py original model",
             "type": "python",
             "request": "launch",
