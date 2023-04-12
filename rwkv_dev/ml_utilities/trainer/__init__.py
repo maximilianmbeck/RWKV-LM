@@ -1,11 +1,9 @@
 from typing import Type
 
-from .supervisedbasetrainer import SupervisedBaseTrainer
 from .basetrainer import BaseTrainer
 from .universalbasetrainer import UniversalBaseTrainer
 
-
-_trainer_registry = {'supervised': SupervisedBaseTrainer, 'supervised-universal': UniversalBaseTrainer}
+_trainer_registry = {'supervised-universal': UniversalBaseTrainer}
 
 def get_trainer_class(training_setup: str) -> Type[BaseTrainer]:
     if training_setup in _trainer_registry:

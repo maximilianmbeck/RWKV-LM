@@ -1,21 +1,20 @@
 import logging
+from dataclasses import asdict
+from typing import Any, Callable, Dict, List, Union
+
 import torch
 import torch.utils.data as data
-from typing import Any, Callable, Dict, List, Union
-from dataclasses import asdict
+from ml_utilities.config import Config
+from ml_utilities.data.datasetgeneratorinterface import DatasetGeneratorInterface
+from ml_utilities.logger import Logger, create_wandb_init_args
+from ml_utilities.torch_utils.losses import get_loss
+from ml_utilities.torch_utils.metrics import create_metrics
+from ml_utilities.torch_utils.optimizer_scheduler import (
+    create_optimizer_and_scheduler_from_config,
+)
+from ml_utilities.trainer.basetrainer import BaseTrainer
 from torch import nn
 from torchmetrics import MetricCollection
-
-from ml_utilities.torch_models import create_model
-from ml_utilities.torch_utils.factory import create_optimizer_and_scheduler_from_config
-from ml_utilities.trainer.basetrainer import BaseTrainer
-from ml_utilities.torch_utils import get_loss
-from ml_utilities.torch_utils.metrics import create_metrics
-from ml_utilities.logger import Logger, create_wandb_init_args
-from ml_utilities.data import create_datasetgenerator
-from ml_utilities.data.datasetgeneratorinterface import DatasetGeneratorInterface
-
-from ml_utilities.config import Config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -24,8 +23,8 @@ class UniversalBaseTrainer(BaseTrainer):
     config_class = Config
     def __init__(self,
                  config: Config,
-                 model_init_func: Callable = create_model,
-                 datasetgenerator_init_func: Callable = create_datasetgenerator,
+                 model_init_func: Callable,
+                 datasetgenerator_init_func: Callable,
                  metrics_init_func: Callable = create_metrics):
         super().__init__(experiment_dir=config.experiment_data.experiment_dir,
                          seed=config.experiment_data.seed,
