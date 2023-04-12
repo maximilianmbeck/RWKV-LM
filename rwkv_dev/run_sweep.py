@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from ml_utilities.run_utils.runner import run_sweep
-from ml_utilities.utils import get_config, get_config_file_from_cli
+from ml_utils.run_utils.runner import run_sweep
+from ml_utils.utils import get_config, get_config_file_from_cli
 from omegaconf import DictConfig
 
 

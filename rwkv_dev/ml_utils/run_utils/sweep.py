@@ -2,14 +2,15 @@ import copy
 import itertools
 import logging
 import sys
-import numpy as np
 from abc import ABC, abstractmethod
 from typing import Iterable, Iterator, List, Optional, Tuple, Union
+
+import numpy as np
+from ml_utils.run_utils.sweep_searchspaces import SearchSpaceDim
+from ml_utils.run_utils.value_parser import parse_list_str
+from ml_utils.utils import flatten_hierarchical_dict, zip_strict
 from omegaconf import DictConfig, OmegaConf, open_dict
 from tqdm import tqdm
-from ml_utilities.run_utils.sweep_searchspaces import SearchSpaceDim
-from ml_utilities.run_utils.value_parser import parse_list_str
-from ml_utilities.utils import zip_strict, flatten_hierarchical_dict
 
 SWEEP_TYPE_KEY = 'type'
 SWEEP_AXES_KEY = 'axes'

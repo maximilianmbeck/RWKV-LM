@@ -1,13 +1,14 @@
-from math import isclose
-import sys
 import inspect
-import numpy as np
+import sys
 from abc import ABC, abstractmethod
+from math import isclose
 from typing import Any, List, Tuple, Type, Union
-from omegaconf import OmegaConf, DictConfig
-from ml_utilities.run_utils.value_parser import parse_list_str
 
-from ml_utilities.utils import convert_to_python_types
+import numpy as np
+from ml_utils.run_utils.value_parser import parse_list_str
+from ml_utils.utils import convert_to_python_types
+from omegaconf import DictConfig, OmegaConf
+
 """These search spaces are based on the API of ray.tune. See [#].
 
 References:

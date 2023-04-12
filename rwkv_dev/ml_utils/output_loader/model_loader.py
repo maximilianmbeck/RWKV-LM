@@ -1,13 +1,13 @@
-import torch
 import logging
 from pathlib import Path
 from typing import Dict, Tuple, Union
-from torch import nn
-from ml_utilities.output_loader.directories import JobDirectory
-from ml_utilities.torch_models.base_model import BaseModel
-from tqdm import tqdm
-from ml_utilities.utils import get_device
 
+import torch
+from ml_utilities.torch_models.base_model import BaseModel
+from ml_utils.output_loader.directories import JobDirectory
+from ml_utils.utils import get_device
+from torch import nn
+from tqdm import tqdm
 
 LOGGER = logging.getLogger(__name__)
 
@@ -16,8 +16,11 @@ def get_best_model_idx(
     job_dir: Union[str, Path, JobDirectory],
     possible_specifiers: Tuple[str] = (),
 ) -> Tuple[int, str]:
-    from ml_utilities.logger import FN_BEST_CHECKPOINT
-    from ml_utilities.trainer.basetrainer import RUN_PROGRESS_MEASURE_STEP, RUN_PROGRESS_MEASURE_EPOCH
+    from ml_utils.logger import FN_BEST_CHECKPOINT
+    from ml_utils.trainer.basetrainer import (
+        RUN_PROGRESS_MEASURE_EPOCH,
+        RUN_PROGRESS_MEASURE_STEP,
+    )
 
     if len(possible_specifiers) == 0:
         possible_specifiers = (RUN_PROGRESS_MEASURE_STEP, RUN_PROGRESS_MEASURE_EPOCH)

@@ -12,19 +12,28 @@ config:
     gpu_id: 1
    
   model:
-    # model config
+    name: rwkv
+    kwargs:
+      embedding_dim: 512
+      attention_dim: 512
+      ffn_dim: 2048
+      num_blocks: 6
+      vocab_size: 0 # will be set by data
+      context_len: 512
+      wkv_config: # set to null to use plain torch
+        T_max: 1024
+        float_mode: 16
   
   trainer:
     training_setup: supervised-universal
-    n_epochs: 500
-    early_stopping_patience: 200
+    n_epochs: 50 #default: 500
     val_every: 5
     save_every: 24e3 
-    batch_size: 128
+    batch_size: 12
     optimizer:
       name: AdamW
       kwargs:
-        lr: 0.001
+        lr: 0.0008
         weight_decay: 0.0
     # loss: crossentropy
     # metrics:
@@ -32,8 +41,6 @@ config:
     #     top_k: 1
     #     num_classes: 10
     num_workers: 4
-    additional_cfg:
-      log_train_step_every: 500
 
   data:
     # data config

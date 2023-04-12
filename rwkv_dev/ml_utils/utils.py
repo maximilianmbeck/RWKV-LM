@@ -1,17 +1,18 @@
-from typing import Any, Dict, Iterable, List, Optional, Union, Any
+import argparse
+import json
+import logging
+import os
+import random
+import shutil
+import subprocess
 import sys
 from datetime import datetime
-import random
-import logging
-import json
-import os
-import subprocess
-import torch
-import shutil
-import numpy as np
-import argparse
-from pathlib import Path
 from itertools import zip_longest
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Union
+
+import numpy as np
+import torch
 from omegaconf import DictConfig, OmegaConf
 
 LOGGER = logging.getLogger(__name__)
@@ -126,7 +127,7 @@ def setup_experiment_dir(experiment_name: str,
     Returns:
         Path: the path to the created run directory
     """
-    from ml_utilities.time_utils import FORMAT_DATETIME_SHORT
+    from ml_utils.time_utils import FORMAT_DATETIME_SHORT
     now = datetime.now().strftime(FORMAT_DATETIME_SHORT)
 
     run_name = f'{experiment_name}--{now}'
@@ -149,7 +150,7 @@ def setup_logging(logfile: str = "output.log"):
     Args:
         log_file (str, optional): Name of the log file. Defaults to "output.log".
     """
-    from ml_utilities.logger import FORMAT_LOGGING
+    from ml_utils.logger import FORMAT_LOGGING
 
     file_handler = logging.FileHandler(filename=logfile)
     stdout_handler = logging.StreamHandler(sys.stdout)
@@ -389,7 +390,7 @@ def sweep_param_cfg_to_str(sweep_param_cfg: Union[DictConfig, Dict[str, Any]]) -
     Returns:
         str: String representation for sweep.
     """
-    from ml_utilities.run_utils.sweep import SWEEP_TYPE_KEY, SWEEP_AXES_KEY
+    from ml_utils.run_utils.sweep import SWEEP_AXES_KEY, SWEEP_TYPE_KEY
 
     sweep_type = sweep_param_cfg[SWEEP_TYPE_KEY]
     sweep_axes = sweep_param_cfg[SWEEP_AXES_KEY]

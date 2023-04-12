@@ -4,15 +4,15 @@ from typing import Any, Callable, Dict, List, Union
 
 import torch
 import torch.utils.data as data
-from ml_utilities.config import Config
-from ml_utilities.data.datasetgeneratorinterface import DatasetGeneratorInterface
-from ml_utilities.logger import Logger, create_wandb_init_args
-from ml_utilities.torch_utils.losses import get_loss
-from ml_utilities.torch_utils.metrics import create_metrics
-from ml_utilities.torch_utils.optimizer_scheduler import (
+from ml_utils.config import Config
+from ml_utils.data.datasetgeneratorinterface import DatasetGeneratorInterface
+from ml_utils.logger import Logger, create_wandb_init_args
+from ml_utils.torch_utils.losses import get_loss
+from ml_utils.torch_utils.metrics import create_metrics
+from ml_utils.torch_utils.optimizer_scheduler import (
     create_optimizer_and_scheduler_from_config,
 )
-from ml_utilities.trainer.basetrainer import BaseTrainer
+from ml_utils.trainer.basetrainer import BaseTrainer
 from torch import nn
 from torchmetrics import MetricCollection
 
@@ -120,7 +120,7 @@ class UniversalBaseTrainer(BaseTrainer):
             self._train_metrics, self._val_metrics = self._metrics_init_func(self.config.trainer.metrics)
         else:
             LOGGER.info('Using metrics from Datasetgenerator.')
-        from ml_utilities.torch_utils.metrics import Loss
+        from ml_utils.torch_utils.metrics import Loss
         LOGGER.info('Adding validation loss as first metric for early stopping.')
         self._val_metrics = MetricCollection(metrics=[Loss(self._loss), self._val_metrics])
 

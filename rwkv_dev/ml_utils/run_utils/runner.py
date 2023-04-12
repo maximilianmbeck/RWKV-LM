@@ -1,12 +1,14 @@
 import logging
 import os
-import dacite
-from typing import Type, Union
 from abc import ABC, abstractmethod
 from pathlib import Path
-from omegaconf import OmegaConf, DictConfig, open_dict
-from ml_utilities.utils import setup_experiment_dir, setup_logging
-from ml_utilities.config import Config
+from typing import Type, Union
+
+import dacite
+from ml_utils.config import Config
+from ml_utils.utils import setup_experiment_dir, setup_logging
+from omegaconf import DictConfig, OmegaConf, open_dict
+
 LOGGER = logging.getLogger(__name__)
 
 DIR_BASE = '.'  # use the working directory of the run script as base dir
@@ -22,7 +24,7 @@ class Runner(ABC):
         pass
 
 def setup_directory(run_type: str, config: DictConfig):
-    from ml_utilities.output_loader.directories import SweepDirectory, JobDirectory
+    from ml_utils.output_loader.directories import JobDirectory, SweepDirectory
 
     exp_dir = setup_experiment_dir(experiment_name=config.config.experiment_data.experiment_name, base_dir=DIR_BASE)
     with open_dict(config):
@@ -61,7 +63,7 @@ def run_sweep(cfg: DictConfig) -> None:
     script_path = Path().cwd() / 'run.py'
     # all runs started with this sweep should go to the jobs folder
     os.chdir(sweep_dir.dir) 
-    from ml_utilities.run_utils.run_handler import RunHandler
+    from ml_utils.run_utils.run_handler import RunHandler
     run_handler = RunHandler(sweep_dir=sweep_dir.dir.resolve(), config=cfg, script_path=script_path)
     run_handler.run()
     return run_handler.runner_dir

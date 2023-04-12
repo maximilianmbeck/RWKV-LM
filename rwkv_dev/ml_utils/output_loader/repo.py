@@ -1,12 +1,14 @@
-from typing import Union
 from dataclasses import dataclass, field
-from pathlib import Path
-from omegaconf import OmegaConf, DictConfig
 from datetime import datetime
-from ml_utilities.run_utils.run_handler import SWEEP_KEY
-from ml_utilities.run_utils.sweep import SWEEP_TYPE_KEY, SWEEP_TYPE_SKIPVAL
-from ml_utilities.time_utils import FORMAT_DATETIME_MID
-from .result_loader import SweepResult, JobResult
+from pathlib import Path
+from typing import Union
+
+from ml_utils.run_utils.run_handler import SWEEP_KEY
+from ml_utils.run_utils.sweep import SWEEP_TYPE_KEY, SWEEP_TYPE_SKIPVAL
+from ml_utils.time_utils import FORMAT_DATETIME_MID
+from omegaconf import DictConfig, OmegaConf
+
+from .result_loader import JobResult, SweepResult
 
 KEY_CFG_CREATED = '__config_created'
 KEY_CFG_UPDATED = '__config_last_updated'

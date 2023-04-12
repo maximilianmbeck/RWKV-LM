@@ -1,8 +1,9 @@
-from typing import Any, Dict, List, Union
-import torch
 from dataclasses import dataclass, field
 from pathlib import Path
-from ml_utilities.utils import get_device
+from typing import Any, Dict, List, Union
+
+import torch
+from ml_utils.utils import get_device
 from omegaconf import DictConfig, OmegaConf
 
 FN_CONFIG = 'config.yaml'

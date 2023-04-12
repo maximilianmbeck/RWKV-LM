@@ -1,24 +1,25 @@
-from abc import ABC, abstractmethod
+import copy
 import logging
 import math
+import sys
+from abc import ABC, abstractmethod
+from dataclasses import asdict
+from math import isnan
+from typing import Any, Dict, List, Union
+
 import pandas as pd
 import torch
-import sys
-import copy
-from math import isnan
-from dataclasses import asdict
-from typing import Any, Dict, List, Union
-from torch import optim, nn
+from ml_utilities.torch_models.base_model import BaseModel
+from ml_utils.config import ResumeTrainingConfig
+from ml_utils.logger import PREFIX_BEST_CHECKPOINT, Logger
+from ml_utils.output_loader.directories import JobDirectory
+from ml_utils.run_utils.runner import Runner
+from ml_utils.time_utils import Stopwatch
+from ml_utils.utils import get_device, set_seed, setup_exception_logging
+from torch import nn, optim
 from torch.optim import lr_scheduler
 from torchmetrics import MetricCollection
 from tqdm import tqdm
-from ml_utilities.run_utils.runner import Runner
-from ml_utilities.time_utils import Stopwatch
-from ml_utilities.torch_models.base_model import BaseModel
-from ml_utilities.utils import get_device, set_seed, setup_exception_logging
-from ml_utilities.logger import Logger, PREFIX_BEST_CHECKPOINT
-from ml_utilities.output_loader.directories import JobDirectory
-from ml_utilities.config import ResumeTrainingConfig
 
 LOGGER = logging.getLogger(__name__)
 

@@ -1,23 +1,30 @@
 import copy
+import itertools
 import logging
 import random
+import socket
 import subprocess
 import sys
 import time
-import socket
-import itertools
-import wandb
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from typing import Any, Dict, List, Optional, Tuple, Union
-from pathlib import Path
+import wandb
 from joblib import Parallel, delayed
-from tqdm import tqdm
-
+from ml_utils.run_utils.runner import Runner
+from ml_utils.run_utils.sweep import EXPERIMENT_CONFIG_KEY, OVERRIDE_PARAMS_KEY, Sweeper
+from ml_utils.utils import (
+    archive_code,
+    convert_to_simple_str,
+    get_config,
+    hyp_param_cfg_to_str,
+    make_str_filename,
+    remove_toplevelkeys_from_dictconfig,
+)
 from omegaconf import DictConfig, ListConfig, OmegaConf
-from ml_utilities.run_utils.sweep import EXPERIMENT_CONFIG_KEY, OVERRIDE_PARAMS_KEY, Sweeper
-from ml_utilities.run_utils.runner import Runner
-from ml_utilities.utils import convert_to_simple_str, get_config, hyp_param_cfg_to_str, make_str_filename, remove_toplevelkeys_from_dictconfig, archive_code
+from tqdm import tqdm
 
 LOGGER = logging.getLogger(__name__)
 

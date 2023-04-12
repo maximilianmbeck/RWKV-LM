@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Optional, Union
 import torch
 from torch import nn
 
-from ml_utilities.utils import get_device
+from rwkv_dev.ml_utils.utils import get_device
 
 FN_MODEL_PREFIX = 'model_'
 FN_MODEL_FILE_EXT = '.p'
