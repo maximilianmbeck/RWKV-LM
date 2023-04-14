@@ -24,6 +24,7 @@ config:
         T_max: 1024
         float_mode: '16'
         device: 'cuda:0'
+      l2_logit_reg: false
   
   trainer:
     # training_setup: supervised-universal
@@ -35,11 +36,6 @@ config:
       name: Adam
       kwargs:
         lr: 0.0008
-    # loss: crossentropy
-    # metrics:
-    # - MulticlassAccuracy:
-    #     top_k: 1
-    #     num_classes: 10
     num_workers: 4
 
   data:

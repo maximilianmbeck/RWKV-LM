@@ -134,7 +134,8 @@ class RunHandler(Runner):
                       gpu_ids=gpu_ids,
                       runs_per_gpu=runs_per_gpu,
                       log_wandb=self.log_wandb, 
-                      shuffle_configs=self.config.run_config.get('shuffle_configs', False))
+                      shuffle_configs=self.config.run_config.get('shuffle_configs', False), 
+                      use_cuda_visible_devices=self.config.run_config.get('use_cuda_visible_devices', True))
 
     def _extract_sweep(self, config: DictConfig) -> List[DictConfig]:
         if config.get(SWEEP_KEY, None) is None:
@@ -209,7 +210,8 @@ def schedule_runs(configs_save_dir: Path,
                   runs_per_gpu: Optional[int] = None,
                   log_wandb: bool = True,
                   sleep_time: int = 1, 
-                  shuffle_configs: bool = False):
+                  shuffle_configs: bool = False,
+                  use_cuda_visible_devices: bool = True):
     """Distribute multiple runs on different gpus of the same machine.
 
     Example:
@@ -226,6 +228,7 @@ def schedule_runs(configs_save_dir: Path,
         log_wandb (bool, optional): If true, logs status to wandb.
         sleep_time (int, optional): Time to wait until starting next run.
         shuffle_configs (bool, optional): If true, shuffles the list of configs before scheduling. Defaults to False.
+        use_cuda_visible_devices (bool, optional): If true, uses CUDA_VISIBLE_DEVICES to set the gpu id. Defaults to True.
     """
     assert len(experiment_configs) > 0, f"No experiments to schedule given."
 
@@ -269,7 +272,13 @@ def schedule_runs(configs_save_dir: Path,
             node_id = int(np.argmin(gpu_counter))
             gpu_counter[node_id] += 1
             gpu_id = gpu_ids[node_id]
-            # TODO use CUDA_VISIBLE_DEVICES to set gpu id
+            
+            # * set CUDA_VISIBLE_DEVICES if necessary
+            cuda_visible_device = ''
+            if use_cuda_visible_devices:
+                cuda_visible_device = f'CUDA_VISIBLE_DEVICES={gpu_id} '
+                gpu_id = 0
+
             # * prepare next experiment in list
             current_config = copy.deepcopy(experiment_configs[counter])
             config_name = update_and_save_config(save_dir=configs_save_dir,
@@ -278,7 +287,7 @@ def schedule_runs(configs_save_dir: Path,
                                                  hostname=socket.gethostname())
 
             # start run via subprocess call
-            run_command = f'python {script_path} --config-path {str(configs_save_dir)} --config-name {config_name}'
+            run_command = f'{cuda_visible_device}python {script_path} --config-path {str(configs_save_dir)} --config-name {config_name}'
             LOGGER.info(f'Starting run {counter}/{len(experiment_configs) - 1}: {run_command}')
             running_processes[(counter, run_command, node_id)] = subprocess.Popen(run_command,
                                                                                   stdout=subprocess.DEVNULL,
