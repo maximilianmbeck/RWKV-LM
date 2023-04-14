@@ -12,6 +12,36 @@ from .wkv_kernel import WKV, WKVConfig, WKVTorch
 
 LOGGER = logging.getLogger(__name__)
 
+class L2Wrap(torch.autograd.Function):
+    """L2 regularization for the logits."""
+    @staticmethod
+    def forward(ctx, loss, y):
+        ctx.save_for_backward(y)
+        return loss
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        y = ctx.saved_tensors[0]
+        # to encourage the logits to be close to 0
+        factor = 1e-4 / (y.shape[0] * y.shape[1])
+        maxx, ids = torch.max(y, -1, keepdim=True)
+        gy = torch.zeros_like(y)
+        gy.scatter_(-1, ids, maxx * factor)
+        return (grad_output, gy)
+
+def _get_activation_fn(activation):
+    if activation == "relu":
+        return F.relu
+    elif activation == "gelu":
+        return F.gelu
+    elif activation == "silu":
+        return F.silu
+    elif activation == "relu_squared":
+        return lambda x: torch.square(torch.relu(x))
+    elif activation == "selu":
+        return F.selu
+    else:
+        raise ValueError(f"Unknown activation function {activation}")
 
 @dataclass
 class RWKVConfig:
@@ -23,6 +53,10 @@ class RWKVConfig:
     context_len: int
     wkv_config: Optional[Union[WKVConfig, Dict]] = field(
         default_factory=lambda: WKVConfig())
+    l2_logit_reg: bool = False
+    use_timemix_timemix: bool = True
+    use_timemix_channelmix: bool = True
+    channelmix_act_fn: str = "relu_squared"
 
 
 class RWKV(BaseModel):
@@ -85,7 +119,10 @@ class RWKV(BaseModel):
     def get_loss_func(self):
 
         def loss_fn(y_hat, y):
-            return F.cross_entropy(y_hat.view(-1, y_hat.size(-1)), y.view(-1))
+            loss = F.cross_entropy(y_hat.view(-1, y_hat.size(-1)), y.view(-1))
+            if self.cfg.l2_logit_reg:
+                loss = L2Wrap.apply(loss, y_hat)
+            return loss
 
         return loss_fn
 
@@ -207,11 +244,16 @@ class RWKVTimeMix(nn.Module):
                             gain=_calc_gain(self.value.weight))
 
     def _compute_rkv(self, x):
-        xx = self.time_shift(
-            x)  # Mix x with the previous timestep to produce xk, xv, xr
-        xk = x * self.time_mix_k + xx * (1 - self.time_mix_k)
-        xv = x * self.time_mix_v + xx * (1 - self.time_mix_v)
-        xr = x * self.time_mix_r + xx * (1 - self.time_mix_r)
+        if self.rwkv_cfg.use_timemix_timemix:
+            xx = self.time_shift(
+                x)  # Mix x with the previous timestep to produce xk, xv, xr
+            xk = x * self.time_mix_k + xx * (1 - self.time_mix_k)
+            xv = x * self.time_mix_v + xx * (1 - self.time_mix_v)
+            xr = x * self.time_mix_r + xx * (1 - self.time_mix_r)
+        else:
+            xk = x
+            xv = x
+            xr = x
         k = self.key(xk)
         v = self.value(xv)
         r = self.receptance(xr)
@@ -277,6 +319,8 @@ class RWKVChannelMix(nn.Module):
         self.rwkv_cfg = rwkv_config
         self.block_id = block_id
 
+        self._act_fn = _get_activation_fn(self.rwkv_cfg.channelmix_act_fn)
+
         embedding_dim = self.rwkv_cfg.embedding_dim
         ffn_dim = self.rwkv_cfg.ffn_dim
         # init time mix constants
@@ -285,7 +329,7 @@ class RWKVChannelMix(nn.Module):
                                        requires_grad=req_grad)
         self.time_mix_r = nn.Parameter(torch.empty((1, 1, embedding_dim)),
                                        requires_grad=req_grad)
-
+        
         # init layers / parameters
         self.time_shift = nn.ZeroPad2d((0, 0, 1, -1))
         self.key = nn.Linear(embedding_dim, ffn_dim, bias=False)
@@ -321,11 +365,15 @@ class RWKVChannelMix(nn.Module):
         return time_mix_k, time_mix_r
 
     def forward(self, x):
-        xx = self.time_shift(x)
-        xk = x * self.time_mix_k + xx * (1 - self.time_mix_k)
-        xr = x * self.time_mix_r + xx * (1 - self.time_mix_r)
+        if self.rwkv_cfg.use_timemix_channelmix:
+            xx = self.time_shift(x)
+            xk = x * self.time_mix_k + xx * (1 - self.time_mix_k)
+            xr = x * self.time_mix_r + xx * (1 - self.time_mix_r)
+        else:
+            xk = x
+            xr = x
         k = self.key(xk)
-        k = torch.square(torch.relu(k))
+        k = self._act_fn(k)
         kv = self.value(k)
         y = torch.sigmoid(self.receptance(xr)) * kv
         return y

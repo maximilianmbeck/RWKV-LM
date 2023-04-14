@@ -1,0 +1,67 @@
+run_config:
+  exec_type: parallel
+  hostname: scorpion
+  gpu_ids:
+  - 0
+  - 1
+  runs_per_gpu: 1
+  use_cuda_visible_devices: true
+  wandb:
+    init:
+      tags:
+      - ${config.experiment_data.experiment_tag}_exps
+      - run_handler
+      notes: null
+      group: ${config.experiment_data.experiment_tag}
+      job_type: run_handler
+seeds:
+- 0
+- 1
+- 2
+- 3
+- 4
+sweep:
+  type: skip
+  axes: null
+start_num: 0
+config:
+  experiment_data:
+    entity: fslgroup
+    project_name: rwkv
+    experiment_tag: baseline
+    experiment_type: seeds
+    experiment_name: vary_seeds
+    experiment_dir: null
+    experiment_notes: null
+    seed: 0
+    gpu_id: 0
+  model:
+    name: rwkv
+    kwargs:
+      embedding_dim: 512
+      attention_dim: 512
+      ffn_dim: 2048
+      num_blocks: 6
+      vocab_size: 6064
+      context_len: 512
+      wkv_config:
+        T_max: 1024
+        float_mode: '16'
+        device: cuda:0
+  trainer:
+    n_epochs: 5
+    val_every: 5
+    save_every: 5
+    batch_size: 12
+    optimizer:
+      name: Adam
+      kwargs:
+        lr: 0.0008
+  data:
+    name: enwik8
+    kwargs:
+      batch_size: 12
+      datafile: /system/user/beck/pwbeck/projects/rwkv/RWKV-LM/data/enwik8
+      context_length: 512
+__config_created: '2023-04-14 14:14:43'
+__config_last_updated: '2023-04-14 14:14:43'

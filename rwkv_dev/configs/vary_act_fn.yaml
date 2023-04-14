@@ -1,0 +1,61 @@
+run_config:
+  exec_type: parallel
+  hostname: dragonfly
+  gpu_ids:
+  - 2
+  runs_per_gpu: 1
+  use_cuda_visible_devices: true
+seeds:
+- 0
+sweep:
+  type: grid
+  axes:
+  - parameter: model.kwargs.channelmix_act_fn
+    vals:
+    - relu
+    - gelu
+    - silu
+    - selu
+start_num: 0
+config:
+  experiment_data:
+    entity: fslgroup
+    project_name: rwkv
+    experiment_tag: ablations
+    experiment_type: act_fn
+    experiment_name: vary_act_fn
+    experiment_dir: null
+    experiment_notes: null
+    seed: 0
+    gpu_id: 0
+  model:
+    name: rwkv
+    kwargs:
+      embedding_dim: 512
+      attention_dim: 512
+      ffn_dim: 2048
+      num_blocks: 6
+      vocab_size: 6064
+      context_len: 512
+      wkv_config:
+        T_max: 1024
+        float_mode: '16'
+        device: cuda:0
+      channelmix_act_fn: relu_squared
+  trainer:
+    n_epochs: 5
+    val_every: 5
+    save_every: 5
+    batch_size: 12
+    optimizer:
+      name: Adam
+      kwargs:
+        lr: 0.0008
+  data:
+    name: enwik8
+    kwargs:
+      batch_size: 12
+      datafile: /system/user/beck/pwbeck/projects/rwkv/RWKV-LM/data/enwik8
+      context_length: 512
+__config_created: '2023-04-14 14:39:42'
+__config_last_updated: '2023-04-14 14:39:42'
