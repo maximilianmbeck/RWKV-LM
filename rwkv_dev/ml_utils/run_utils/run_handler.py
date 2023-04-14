@@ -269,7 +269,7 @@ def schedule_runs(configs_save_dir: Path,
             node_id = int(np.argmin(gpu_counter))
             gpu_counter[node_id] += 1
             gpu_id = gpu_ids[node_id]
-
+            # TODO use CUDA_VISIBLE_DEVICES to set gpu id
             # * prepare next experiment in list
             current_config = copy.deepcopy(experiment_configs[counter])
             config_name = update_and_save_config(save_dir=configs_save_dir,

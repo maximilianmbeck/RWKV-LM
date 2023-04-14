@@ -167,11 +167,17 @@ class BaseTrainer(Runner, ABC):
             self._model.train()
             with Stopwatch() as sw:
                 loss_dict = self._train_step(train_batch=batch, batch_idx=batch_idx)
-            if self._train_step_idx % 100 == 0: # do not log T_train_step every step
+            if self._train_step_idx % 10 == 0: # do not log T_train_step every step
+                time_dict = {'T_train_step': sw.elapsed_seconds}
+                # calculate tokens per second
+                n_tokens = loss_dict.pop('n_tokens', None)
+                if n_tokens is not None:
+                    time_dict['tokens_per_second'] = n_tokens / sw.elapsed_seconds
                 self._logger.log_keys_vals(prefix='timer',
                                            epoch=self._epoch_idx,
                                            train_step=self._train_step_idx,
-                                           keys_val={'T_train_step': sw.elapsed_seconds})
+                                           keys_val=time_dict)
+
             self._train_step_idx += 1
             losses_epoch.append(loss_dict)
 
@@ -186,7 +192,10 @@ class BaseTrainer(Runner, ABC):
             if self._lr_scheduler is not None: self._lr_scheduler.step()
 
         # log epoch
-        metrics_epoch = self._train_metrics.compute()
+        if self._train_metrics is not None:
+            metrics_epoch = self._train_metrics.compute()
+        else:
+            metrics_epoch = {}
         self._logger.log_keys_vals(prefix='train',
                                    epoch=self._epoch_idx,
                                    train_step=self._train_step_idx,

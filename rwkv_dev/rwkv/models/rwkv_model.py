@@ -1,3 +1,4 @@
+import logging
 import math
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Tuple, Union
@@ -9,6 +10,8 @@ from torch import nn
 
 from .wkv_kernel import WKV, WKVConfig, WKVTorch
 
+LOGGER = logging.getLogger(__name__)
+
 
 @dataclass
 class RWKVConfig:
@@ -18,7 +21,8 @@ class RWKVConfig:
     num_blocks: int
     vocab_size: int
     context_len: int
-    wkv_config: Optional[Union[WKVConfig, Dict]] = field(default_factory=lambda: WKVConfig())
+    wkv_config: Optional[Union[WKVConfig, Dict]] = field(
+        default_factory=lambda: WKVConfig())
 
 
 class RWKV(BaseModel):
@@ -37,6 +41,10 @@ class RWKV(BaseModel):
             RWKVBlock(rwkv_config=self.cfg, block_id=i)
             for i in range(self.cfg.num_blocks)
         ])
+        if self.cfg.wkv_config is not None:
+            LOGGER.info("Using WKV cuda kernel.")
+        else:
+            LOGGER.info("Using WKV torch kernel.")
 
         self.ln_out = nn.LayerNorm(self.cfg.embedding_dim)
         self.head = nn.Linear(self.cfg.embedding_dim,
@@ -75,9 +83,12 @@ class RWKV(BaseModel):
         return x
 
     def get_loss_func(self):
+
         def loss_fn(y_hat, y):
             return F.cross_entropy(y_hat.view(-1, y_hat.size(-1)), y.view(-1))
+
         return loss_fn
+
 
 def _calc_gain(weight: torch.Tensor) -> float:
     """Calculate the gain value of the given weight tensor."""
@@ -133,6 +144,7 @@ class RWKVBlock(nn.Module):
         x_ = self.ffn_channelmix(x_)
         x = x + x_
         return x
+
 
 class RWKVTimeMix(nn.Module):
 

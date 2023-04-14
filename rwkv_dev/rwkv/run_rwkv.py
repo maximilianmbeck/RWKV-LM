@@ -1,11 +1,17 @@
+import logging
+import os
+
 import dacite
+import torch
 from dacite import from_dict
 from ml_utils.run_utils.runner import setup_directory
 from omegaconf import DictConfig, OmegaConf
+from rwkv.data.dataloaders import get_dataloader_creator
 from rwkv.models import get_model
 from rwkv.trainer import UniversalRwkvTrainer
 from torch.utils import data
 
+LOGGER = logging.getLogger(__name__)
 
 def run_job(cfg: DictConfig):
     OmegaConf.resolve(cfg)
@@ -16,32 +22,25 @@ def run_job(cfg: DictConfig):
 
     # create model
     model = get_model(cfg.model)
+    # LOGGER.info('Use torch.compile')
+    # model = torch.compile(model, mode='reduce-overhead')
 
     # create dataloader
-    # TODO make this configurable
-    def get_dataloaders():
-        from rwkv.data.enwik8_dataset import EnWik8
-        ds = EnWik8(
-            datafile=
-            '/system/user/beck/pwbeck/projects/rwkv/RWKV-LM/data/enwik8')
-        data_loader = data.DataLoader(ds,
-                                      shuffle=False,
-                                      pin_memory=True,
-                                      batch_size=12,
-                                      num_workers=1,
-                                      persistent_workers=True,
-                                      drop_last=True)
-        return data_loader, None
+    dataloader_creator = get_dataloader_creator(cfg.data.name)
+    get_dataloaders = lambda: dataloader_creator(cfg.data.kwargs)
 
     # create metrics
     # TODO make this configurable
     def get_metrics():
-        return None, None
+        import torchmetrics
+        perplexity = torchmetrics.Perplexity()
+        train_metrics = torchmetrics.MetricCollection([perplexity])
+        return train_metrics, None
 
     # TODO add a mapping from dataloader to model input
 
     trainer = UniversalRwkvTrainer(config=cfg,
                                    model=model,
                                    get_dataloaders=get_dataloaders,
-                                   get_metrics=None)
+                                   get_metrics=get_metrics)
     trainer.run()

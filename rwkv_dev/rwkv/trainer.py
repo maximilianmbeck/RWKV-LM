@@ -81,6 +81,7 @@ class UniversalRwkvTrainer(BaseTrainer):
                 metric_vals = self._train_metrics(ys_pred, ys)
         # log step
         self._log_step(losses_step=loss_dict, metrics_step=metric_vals)
+        loss_dict['n_tokens'] = xs.shape[0]*xs.shape[1]
         return loss_dict
 
     def _create_datasets(self) -> None:
@@ -102,8 +103,12 @@ class UniversalRwkvTrainer(BaseTrainer):
         if self._get_metrics is not None:
             LOGGER.info('Creating metrics.')
             self._train_metrics, self._val_metrics = self._get_metrics()
-            self._val_metrics = MetricCollection(
-                metrics=[Loss(self._loss), self._val_metrics])
+            if self._val_metrics is None:
+                self._val_metrics = MetricCollection(
+                    metrics=[Loss(self._loss)])
+            else:
+                self._val_metrics = MetricCollection(
+                    metrics=[Loss(self._loss), self._val_metrics])
         else:
             LOGGER.info('No metrics specified.')
             self._train_metrics = None
