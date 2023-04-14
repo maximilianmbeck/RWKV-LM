@@ -179,6 +179,7 @@ class WKV(nn.Module):
 
     def forward(self, batch_size, seq_len, embeding_dim, time_decay,
                 time_first, k, v):
+        self.device = self.cfg.device = v.device
         assert self.device != torch.device(
             'cpu'), 'WKV is not implemented for CPU'
         self._WKV.wkv_cuda = self.wkv_cuda
@@ -191,7 +192,9 @@ class WKVTorch(nn.Module):
 
     def __init__(self):
         super().__init__()
-        # TODO did not add time_decay = -torch.exp(time_decay) here, is it necessary?, so far it seems to work without it
+        # did not add time_decay = -torch.exp(time_decay) here, it is not necessary
+        # this is done in the forward function of WKV cuda kernel
+        # if it is added here, the outputs will be different from the cuda kernel
 
     def forward(self, batch_size, seq_len, embedding_dim, time_decay,
                 time_first, k, v):
@@ -226,5 +229,5 @@ class WKVTorch(nn.Module):
             aa = (aa * e_td_k + v_[t] * e_k)
             bb = (bb * e_td_k + e_k)
             eps = eps_next
-            y = rearrange(y_, 's b e -> b s e')
+        y = rearrange(y_, 's b e -> b s e')
         return y

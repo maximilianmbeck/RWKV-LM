@@ -15,7 +15,7 @@ class RWKVModuleConfig:
 
 
 class L2Wrap(torch.autograd.Function):
-
+    """L2 regularization for the logits."""
     @staticmethod
     def forward(ctx, loss, y):
         ctx.save_for_backward(y)
